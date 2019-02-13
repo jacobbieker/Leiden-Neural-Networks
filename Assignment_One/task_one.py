@@ -1,6 +1,7 @@
 from mnist import mnist_data
 import numpy as np
 from sklearn.metrics.pairwise import pairwise_distances as dist
+from myplot import heatmap
 
 x_train, y_train, x_test, y_test = mnist_data("data")
 
@@ -71,8 +72,12 @@ def clump_vectors(images, labels, dist_measure="euclidean"):
     center_lists = np.asarray(center_lists)
 
     print(list_of_center_distances)
+    
+    overlap = np.tile(ri_list, (10, 1)) + np.tile(ri_list, (10, 1)).T \
+        - list_of_center_distances
 
-    return center_lists, ri_list, list_of_center_distances, num_elements_per_label
+    return center_lists, ri_list, list_of_center_distances, \
+        num_elements_per_label, overlap
 
 
 def classify_on_centers(image, centers, dist_measure="euclidean"):
@@ -96,13 +101,15 @@ def classify_on_centers(image, centers, dist_measure="euclidean"):
 
     return min_center_index
 
+center_lists, ri_list, list_of_center_distances, num_elements_per_label, \
+    overlap = clump_vectors(x_train, y_train)
 
-clump_vectors(x_train, y_train)
+heatmap(overlap, np.arange(10), np.arange(10), valfmt="{x:.0f}",
+        textcolors=['white', 'black'], vmax = 25, cmap = 'hot')
 
 # Task 2
 
 from sklearn.metrics import confusion_matrix
-import matplotlib.pyplot as plt
 import itertools
 
 def plot_confusion_matrix(cm, classes,
