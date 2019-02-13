@@ -8,10 +8,10 @@ x_train, y_train, x_test, y_test = mnist_data("data")
 def clump_vectors(images, labels, dist_measure="euclidean"):
     """
     Task 1, calculate the mean of the image vectors as C, then calculate the radius of all labelled digits from C to
-    get radius of each digit, and distances between the different centers
+    get radius of each digit, distances between the different centers, and the number of points that belong to each C
     :param images: Images in 16x16 format
     :param labels: Labels for the images
-    :return: Centers, as well as radii for each center
+    :return: Centers, radii for each center, distances between centers, and number of elements belonging to each center
     """
 
     # TODO What does the Ci, ni mean in the instructions? Not clear what he is saying
@@ -48,6 +48,12 @@ def clump_vectors(images, labels, dist_measure="euclidean"):
                     max_distance = distance
         ri_list.append(max_distance)
 
+    # TODO Count number with elements that have label Ci which is then ni
+    num_elements_per_label = np.zeros((10))
+    for label in labels:
+        num_elements_per_label[label[0]] += 1
+
+
     # Finally calculating distances between centers
     list_of_center_distances = []
     for i in range(10):
@@ -66,7 +72,7 @@ def clump_vectors(images, labels, dist_measure="euclidean"):
 
     print(list_of_center_distances)
 
-    return center_lists, ri_list, list_of_center_distances
+    return center_lists, ri_list, list_of_center_distances, num_elements_per_label
 
 
 def classify_on_centers(image, centers, dist_measure="euclidean"):
