@@ -97,3 +97,4 @@ def heatmap(data, row_labels, col_labels, ax=None, cbar_kw={}, cbarlabel="",
             texts.append(text)
 
     plt.show()
+    
