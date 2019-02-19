@@ -107,6 +107,18 @@ center_lists, ri_list, list_of_center_distances, num_elements_per_label, \
 heatmap(overlap, np.arange(10), np.arange(10), valfmt="{x:.0f}",
         textcolors=['white', 'black'], vmax = 25, cmap = 'hot')
 
+#==============================================================================
+# the heat map shows the overlap between the clusters in Euclidean distance;
+# e.g. the (i, j)th value = r_i + r_j - d_ij, the diagonal gives the diameter
+# of each cluster. The results show significant overlap, which is often more
+# than half the diameter of the corresponding clusters, hence we would expect
+# classification performance to be low. One limitation of this overlap matrix
+# is that it is completely dependent on the extremum of each cluster, hence 
+# does not provide any information about the distribution of values within the
+# clusters. A more informative measure might be to plot the overlap matrix for
+# the first 75% of values from the center.
+#==============================================================================
+
 # Task 2
 
 from sklearn.metrics import confusion_matrix
