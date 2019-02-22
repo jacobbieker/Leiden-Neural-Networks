@@ -6,6 +6,15 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
+def relu(x):
+    return max(0, x)
+
+
+def tanh(x):
+    return np.tanh(x)
+
+
+
 def xor_net(x1, x2, weights):
     """
     Two input nodes, two hidden nodes, and one output node
