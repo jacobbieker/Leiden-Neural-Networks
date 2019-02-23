@@ -2,6 +2,7 @@ import numpy as np
 from mnist import mnist_data
 from .perceptron import Perceptron
 
+
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
@@ -12,7 +13,6 @@ def relu(x):
 
 def tanh(x):
     return np.tanh(x)
-
 
 
 def xor_net(x1, x2, weights):
@@ -37,11 +37,34 @@ def mse(weights, y_true):
     :return:
     """
 
-    error = 0.5*1 * np.sum((y_true - weights)**2)
+    error = 0.5 * 1 * np.sum((y_true - weights) ** 2)
     return error
 
 
 def grdmse(weights):
+    """
+    Gradient Descent
+    :param weights:
+    :return:
+    """
+
+    e = 1E-3
+
+
+    return NotImplementedError
+
+
+def train_network(size, data, labels):
+    """
+    Actual gradient descent, initialize to random, then iterate over weights = weights - eta* grdmse(weights)
+    :param size: Size of weights, so 9 for the XOR network, 256 for MNIST
+    :param eta:
+    :return:
+    """
+
+    weights = np.random.rand(size)
+
+
 
 
     return NotImplementedError
