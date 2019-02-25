@@ -120,14 +120,26 @@ heatmap(overlap, np.arange(10), np.arange(10), valfmt="{x:.0f}",
 #==============================================================================
 
 # Task 2
+# Training set prediction
+yhat_train = np.zeros(len(x_train))
+for i in range(len(x_train)):
+    yhat_train[i] = classify_on_centers(x_train[i].reshape(256), center_lists)
+
+# Test set prediction
+yhat_test = np.zeros(len(x_test))
+for i in range(len(x_test)):
+    yhat_test[i] = classify_on_centers(x_test[i].reshape(256), center_lists)
+    
 
 from sklearn.metrics import confusion_matrix
 import itertools
+from matplotlib import pyplot as plt
 
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
                           title='Confusion matrix',
-                          cmap=plt.cm.Blues):
+                          cmap=plt.cm.Blues,
+                          sums = False, **kwargs):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -142,25 +154,76 @@ def plot_confusion_matrix(cm, classes,
         print('Confusion matrix, without normalization')
 
     print(cm)
-
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    
+    if sums:    
+        fig = plt.subplot(221)
+    
+    matrix = plt.imshow(cm, interpolation='nearest', cmap=cmap, **kwargs)
     plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
+    plt.xticks(tick_marks, classes)
     plt.yticks(tick_marks, classes)
 
-    fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
+    fmt = '.2f' if normalize else '.0f'
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt),
                  horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
-
+                 verticalalignment="center",
+                 fontsize = 8,
+                 color="white" if matrix.norm(cm[i, j]) > 0.5 else "black")
+    
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
-    plt.tight_layout()
+    
+    if sums:
+        fmtsums = '.2f'
+        
+        plt.subplot(222)
+        rec = np.reshape(np.diag(cm)/sum(cm), (10,1))
+        
+        recfig = plt.imshow(rec, interpolation='nearest', cmap=cmap)
+        plt.title("Recall")
+        plt.xticks([])
+        plt.yticks(np.arange(len(classes)))
+        
+        for i, j in itertools.product(range(rec.shape[0]), range(rec.shape[1])):
+            plt.text(j, i, format(rec[i, j], fmtsums),
+                     horizontalalignment="center",
+                     verticalalignment="center",
+                     fontsize = 8,
+                     color="white" if recfig.norm(rec[i, j]) > 0.5 else "black")
+        
+        plt.subplot(223)
+        prec = np.reshape(np.diag(cm)/sum(cm, 1), (1,10))
+        
+        precfig = plt.imshow(prec, interpolation='nearest', cmap=cmap)
+        plt.title("Precision")
+        plt.xticks(np.arange(len(classes)))
+        plt.yticks([])
+        
+        for i, j in itertools.product(range(prec.shape[0]), range(prec.shape[1])):
+            plt.text(j, i, format(prec[i, j], fmtsums),
+                     horizontalalignment="center",
+                     verticalalignment="center",
+                     fontsize = 8,
+                     color="white" if precfig.norm(prec[i, j]) > 0.5 else "black")
+            
+# Compute and plot confusion matrix
+train_cm = confusion_matrix(y_train, yhat_train)
+test_cm = confusion_matrix(y_test, yhat_test)
+
+plot_confusion_matrix(train_cm, range(10),
+                      title = "Confusion Matrix - Training Set",
+                      vmax = 30, sums = True)
+plot_confusion_matrix(test_cm, range(10),
+                      title = "Confusion Matrix - Test Set",
+                      vmax = 30)
+
+# Manually compare y_test and yhat_test
+np.asarray([np.reshape(y_test, 999), yhat_test])
+
+plot_confusion_matrix(overlap, range(10), title = "Overlap Matrix", vmax = 25)
 
 
-# Compute confusion matrix
-cnf_matrix = confusion_matrix(y_test, y_pred)
+
