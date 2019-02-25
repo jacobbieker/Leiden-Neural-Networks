@@ -156,7 +156,7 @@ def plot_confusion_matrix(cm, classes,
     print(cm)
     
     if sums:    
-        fig = plt.subplot(221)
+        plt.subplot(221)
     
     matrix = plt.imshow(cm, interpolation='nearest', cmap=cmap, **kwargs)
     plt.title(title)
