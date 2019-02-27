@@ -218,7 +218,7 @@ plot_confusion_matrix(train_cm, range(10),
                       vmax = 30, sums = True)
 plot_confusion_matrix(test_cm, range(10),
                       title = "Confusion Matrix - Test Set",
-                      vmax = 30)
+                      vmax = 30, sums = True)
 
 # Manually compare y_test and yhat_test
 np.asarray([np.reshape(y_test, 999), yhat_test])
