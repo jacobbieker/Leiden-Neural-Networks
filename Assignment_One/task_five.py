@@ -181,6 +181,31 @@ def grdmse(weights):
     return gradient_weights
 
 
+def grdmse_other(weights):
+    """
+    Do it the change eta one
+    :param weights:
+    :return:
+    """
+    eta = 1e-3
+
+    # Now since it is a function of 9 variables, need to do the gradient over 9 time
+    # (f(1+e,2,3,4,5,6,7,8,9) - f(1,2,3,4,5,6,7,8,9))/e for example
+    # Need to get mse from each for that
+
+    base_mse = mse(weights)
+
+    grad_weights = np.zeros(weights.shape)
+    for index, weight in enumerate(weights):
+        changed_weight = weights[index] + eta
+        weights[index] = changed_weight
+        gradient = (mse(weights) - base_mse) / eta
+        grad_weights[index] = gradient
+        weights[index] -= eta
+
+    return grad_weights
+
+
 X = np.array([
     [0, 1],
     [1, 0],
