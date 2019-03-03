@@ -3,8 +3,11 @@ from mnist import mnist_data
 from .perceptron import Perceptron
 
 
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+def sigmoid(x, derv=False):
+    if derv:
+        return z * (1 - z)
+    else:
+        return 1 / (1 + np.exp(-x))
 
 
 def relu(x):
@@ -14,16 +17,41 @@ def relu(x):
 def tanh(x):
     return np.tanh(x)
 
-def remake_weights(weights):
+
+def break_weights(weights):
     bias_node_hidden = weights[4:6]
-    bias_node_hidden = np.reshape(bias_node_hidden, (2,1))
-    bias_node_output = np.reshape(weights[8],(1,1))
+    bias_node_hidden = np.reshape(bias_node_hidden, (2, 1))
+    bias_node_output = np.reshape(weights[8], (1, 1))
 
     weights_input = weights[0:4]
 
-    weights_input = np.reshape(np.asarray(weights_input), (2,2))
-    weights_hidden = np.reshape(weights[6:8], (1,2))
+    weights_input = np.reshape(np.asarray(weights_input), (2, 2))
+    weights_hidden = np.reshape(weights[6:8], (1, 2))
     return bias_node_hidden, bias_node_output, weights_input, weights_hidden
+
+
+def remake_weights(bias_node_hidden, bias_node_output, weights_input, weights_hidden):
+    weights_hidden = np.reshape(weights_hidden, (2,))
+    weights_input = np.reshape(weights_input, (4,))
+    bias_node_output = np.reshape(bias_node_output, (1,))
+    bias_node_hidden = np.reshape(bias_node_hidden, (2,))
+
+    weights = np.append(weights_input, [bias_node_hidden, weights_hidden, bias_node_output])
+
+    return weights
+
+
+def foreward_prop(input_value, weights_input, bias_node_hidden, weights_hidden, bias_node_output):
+    # Now first layer
+
+    input_layer_output = weights_input.dot(input_value) + bias_node_hidden
+    # Activation if there is one
+    input_layer_output = sigmoid(input_layer_output)
+
+    hidden_layer_output = weights_hidden.dot(input_layer_output) + bias_node_output
+    hidden_layer_output = sigmoid(hidden_layer_output)
+
+    return hidden_layer_output
 
 
 def xor_net(x1, x2, weights):
@@ -43,30 +71,20 @@ def xor_net(x1, x2, weights):
 
     # Split the weights into the bias and weight arrays
 
-    bias_node_hidden, bias_node_output, weights_input, weights_hidden = remake_weights(weights)
-
+    bias_node_hidden, bias_node_output, weights_input, weights_hidden = break_weights(weights)
 
     # Now take the input, multiple by the weights for each layer to get the hidden layer units
 
-    input_value = np.reshape(np.asarray([x1,x2]), (2,1)) # Get it as a column vector
+    input_value = np.reshape(np.asarray([x1, x2]), (2, 1))  # Get it as a column vector
 
-    # Now first layer
-
-    input_layer_output = weights_input.dot(input_value) + bias_node_hidden
-    # Activation if there is one
-    input_layer_output = sigmoid(input_layer_output)
-
-    hidden_layer_output = weights_hidden.dot(input_layer_output) + bias_node_output
-    hidden_layer_output = sigmoid(hidden_layer_output)
+    hidden_layer_output = foreward_prop(input_value, weights_input, bias_node_hidden, weights_hidden, bias_node_output)
 
     # Now hidden_layer_output should be one or the other
 
-    if hidden_layer_output > 0.5:
-        return True
-    else:
-        return False
+    return hidden_layer_output
 
-def mse(weights, y_true):
+
+def mse(weights):
     """
     (0,0),(0,1),(1,0),(1,1) = 0,1,1,0
 
@@ -76,10 +94,32 @@ def mse(weights, y_true):
     :return:
     """
 
-    bias_node_hidden, bias_node_output, weights_input, weights_hidden = remake_weights(weights)
+    X = np.array([
+        [0, 0],
+        [1, 0],
+        [0, 1],
+        [1, 1]
+    ])
 
-    error = 0.5 * 1 * np.sum((y_true - weights) ** 2)
-    return error
+    y = np.array([
+        [0],
+        [1],
+        [1],
+        [0]
+    ])
+
+    mean_squared_error = 0.0
+
+    for index, input_value in enumerate(X):
+        x1 = input_value[0]
+        x2 = input_value[1]
+        y_true = y[index]
+        output = xor_net(x1, x2, weights)
+        mean_squared_error += (y_true - output) ** 2
+
+    mean_squared_error /= 4.  # Get the mean value of the error
+
+    return mean_squared_error
 
 
 def grdmse(weights):
@@ -89,13 +129,74 @@ def grdmse(weights):
     :return:
     """
 
-    e = 1E-3
+    X = np.array([
+        [0, 0],
+        [1, 0],
+        [0, 1],
+        [1, 1]
+    ])
+
+    y = np.array([
+        [0],
+        [1],
+        [1],
+        [0]
+    ])
+
+    bias_node_hidden, bias_node_output, weights_input, weights_hidden = break_weights(weights)
+
+    # Partial Derivatives for
+    d_weights_input = 0.0
+    d_weights_hidden = 0.0
+    d_bias_node_hidden = 0.0
+    d_bias_node_output = 0.0
+
+    for index, input_value in enumerate(X):
+        x1 = input_value[0]
+        x2 = input_value[1]
+        input_value = np.reshape(np.asarray([x1, x2]), (2, 1))  # Get it as a column vector
+
+        z1 = weights_input.dot(input_value) + bias_node_hidden  # 2x2 * 2x1 + 2x1 = 2x1
+        a1 = sigmoid(z1)  # 2x1
+
+        z2 = weights_hidden.dot(a1) + bias_node_output  # 1x2 * 2x1 + 1x1 = 1x1
+        a2 = sigmoid(z2)  # 1x1
+
+        # Back prop.
+        dz2 = a2 - y[index]  # 1x1
+        d_weights_hidden += dz2 * a1.T  # 1x1 .* 1x2 = 1x2
+
+        dz1 = np.multiply((weights_hidden.T * dz2), sigmoid(a1, derv=True))  # (2x1 * 1x1) .* 2x1 = 2x1
+        d_weights_input += dz1.dot(input_value.T)  # 2x1 * 1x2 = 2x2
+
+        d_bias_node_hidden += dz1  # 2x1
+        d_bias_node_output += dz2  # 1x1
+
+    d_weights_input /= 4.
+    d_weights_hidden /= 4.
+    d_bias_node_hidden /= 4.
+    d_bias_node_output /= 4.
+
+    gradient_weights = remake_weights(d_bias_node_hidden, d_bias_node_output, d_weights_input, d_weights_hidden)
+    return gradient_weights
 
 
-    return NotImplementedError
+X = np.array([
+    [0, 1],
+    [1, 0],
+    [1, 1],
+    [0, 0]
+])
+
+y = np.array([
+    [1],
+    [1],
+    [0],
+    [0]
+])
 
 
-def train_network(size, data, labels):
+def train_network(size, data, labels, iterations=5000, learning_rate=0.01):
     """
     Actual gradient descent, initialize to random, then iterate over weights = weights - eta* grdmse(weights)
     :param size: Size of weights, so 9 for the XOR network, 256 for MNIST
@@ -105,7 +206,17 @@ def train_network(size, data, labels):
 
     weights = np.random.rand(size)
 
+    # Just need MSE and grdmse
+
+    mserror = np.zeros((iterations,1))
+    for i in range(iterations):
+        # Get MSE with current weights
+        mserror[i] = mse(weights)
+        # Get gradient
+        gradient_weights = grdmse(weights)
+
+        # update weights with gradient descent
+        weights = weights - learning_rate * gradient_weights
 
 
-
-    return NotImplementedError
+    return weights
