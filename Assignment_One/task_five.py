@@ -1,11 +1,9 @@
 import numpy as np
-from mnist import mnist_data
-from .perceptron import Perceptron
 
 
 def sigmoid(x, derv=False):
     if derv:
-        return z * (1 - z)
+        return x * (1 - x)
     else:
         return 1 / (1 + np.exp(-x))
 
@@ -110,16 +108,24 @@ def mse(weights):
 
     mean_squared_error = 0.0
 
+    misclassified_inputs = 0
+
     for index, input_value in enumerate(X):
         x1 = input_value[0]
         x2 = input_value[1]
         y_true = y[index]
         output = xor_net(x1, x2, weights)
+        if output > 0.5:
+            if y_true == 0:
+                misclassified_inputs += 1
+        elif output < 0.5:
+            if y_true == 1:
+                misclassified_inputs += 1
         mean_squared_error += (y_true - output) ** 2
 
     mean_squared_error /= 4.  # Get the mean value of the error
 
-    return mean_squared_error
+    return mean_squared_error, misclassified_inputs
 
 
 def grdmse(weights):
@@ -193,13 +199,14 @@ def grdmse_other(weights):
     # (f(1+e,2,3,4,5,6,7,8,9) - f(1,2,3,4,5,6,7,8,9))/e for example
     # Need to get mse from each for that
 
-    base_mse = mse(weights)
+    base_mse, _ = mse(weights)
 
     grad_weights = np.zeros(weights.shape)
     for index, weight in enumerate(weights):
         changed_weight = weights[index] + eta
         weights[index] = changed_weight
-        gradient = (mse(weights) - base_mse) / eta
+        changed_mse, _ = mse(weights)
+        gradient = (changed_mse - base_mse) / eta
         grad_weights[index] = gradient
         weights[index] -= eta
 
@@ -234,11 +241,13 @@ def train_network(size, data, labels, iterations=5000, learning_rate=0.01):
     # Just need MSE and grdmse
 
     mserror = np.zeros((iterations,1))
+    misclassified = np.zeros((iterations,1))
     for i in range(iterations):
         # Get MSE with current weights
-        mserror[i] = mse(weights)
+        mserror[i], misclassified[i] = mse(weights)
+
         # Get gradient
-        gradient_weights = grdmse(weights)
+        gradient_weights = grdmse_other(weights)
 
         # update weights with gradient descent
         weights = weights - learning_rate * gradient_weights
