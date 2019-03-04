@@ -1,11 +1,8 @@
 import numpy as np
 
 
-def sigmoid(x, derv=False):
-    if derv:
-        return x * (1 - x)
-    else:
-        return 1 / (1 + np.exp(-x))
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
 
 def relu(x):
@@ -39,15 +36,16 @@ def remake_weights(bias_node_hidden, bias_node_output, weights_input, weights_hi
     return weights
 
 
-def foreward_prop(input_value, weights_input, bias_node_hidden, weights_hidden, bias_node_output):
+def foreward_prop(input_value, weights_input, bias_node_hidden, weights_hidden, bias_node_output, activation):
     # Now first layer
 
     input_layer_output = weights_input.dot(input_value) + bias_node_hidden
     # Activation if there is one
-    input_layer_output = sigmoid(input_layer_output)
+    input_layer_output = activation(input_layer_output)
 
     hidden_layer_output = weights_hidden.dot(input_layer_output) + bias_node_output
-    hidden_layer_output = sigmoid(hidden_layer_output)
+    # Activation if there is one
+    hidden_layer_output = activation(hidden_layer_output)
 
     return hidden_layer_output
 
@@ -75,9 +73,10 @@ def xor_net(x1, x2, weights):
 
     input_value = np.reshape(np.asarray([x1, x2]), (2, 1))  # Get it as a column vector
 
-    hidden_layer_output = foreward_prop(input_value, weights_input, bias_node_hidden, weights_hidden, bias_node_output)
+    hidden_layer_output = foreward_prop(input_value, weights_input, bias_node_hidden, weights_hidden, bias_node_output,
+                                        sigmoid)
 
-    # Now hidden_layer_output should be one or the other
+    # Now hidden_layer_output outputs to the single output node
 
     return hidden_layer_output
 
@@ -130,65 +129,6 @@ def mse(weights):
 
 def grdmse(weights):
     """
-    Gradient Descent
-    :param weights:
-    :return:
-    """
-
-    X = np.array([
-        [0, 0],
-        [1, 0],
-        [0, 1],
-        [1, 1]
-    ])
-
-    y = np.array([
-        [0],
-        [1],
-        [1],
-        [0]
-    ])
-
-    bias_node_hidden, bias_node_output, weights_input, weights_hidden = break_weights(weights)
-
-    # Partial Derivatives for
-    d_weights_input = 0.0
-    d_weights_hidden = 0.0
-    d_bias_node_hidden = 0.0
-    d_bias_node_output = 0.0
-
-    for index, input_value in enumerate(X):
-        x1 = input_value[0]
-        x2 = input_value[1]
-        input_value = np.reshape(np.asarray([x1, x2]), (2, 1))  # Get it as a column vector
-
-        z1 = weights_input.dot(input_value) + bias_node_hidden  # 2x2 * 2x1 + 2x1 = 2x1
-        a1 = sigmoid(z1)  # 2x1
-
-        z2 = weights_hidden.dot(a1) + bias_node_output  # 1x2 * 2x1 + 1x1 = 1x1
-        a2 = sigmoid(z2)  # 1x1
-
-        # Back prop.
-        dz2 = a2 - y[index]  # 1x1
-        d_weights_hidden += dz2 * a1.T  # 1x1 .* 1x2 = 1x2
-
-        dz1 = np.multiply((weights_hidden.T * dz2), sigmoid(a1, derv=True))  # (2x1 * 1x1) .* 2x1 = 2x1
-        d_weights_input += dz1.dot(input_value.T)  # 2x1 * 1x2 = 2x2
-
-        d_bias_node_hidden += dz1  # 2x1
-        d_bias_node_output += dz2  # 1x1
-
-    d_weights_input /= 4.
-    d_weights_hidden /= 4.
-    d_bias_node_hidden /= 4.
-    d_bias_node_output /= 4.
-
-    gradient_weights = remake_weights(d_bias_node_hidden, d_bias_node_output, d_weights_input, d_weights_hidden)
-    return gradient_weights
-
-
-def grdmse_other(weights):
-    """
     Do it the change eta one
     :param weights:
     :return:
@@ -203,32 +143,17 @@ def grdmse_other(weights):
 
     grad_weights = np.zeros(weights.shape)
     for index, weight in enumerate(weights):
-        changed_weight = weights[index] + eta
-        weights[index] = changed_weight
+        weights[index] = weights[index] + eta
         changed_mse, _ = mse(weights)
         gradient = (changed_mse - base_mse) / eta
         grad_weights[index] = gradient
+        # Go back to default value
         weights[index] -= eta
 
     return grad_weights
 
 
-X = np.array([
-    [0, 1],
-    [1, 0],
-    [1, 1],
-    [0, 0]
-])
-
-y = np.array([
-    [1],
-    [1],
-    [0],
-    [0]
-])
-
-
-def train_network(size, data, labels, iterations=5000, learning_rate=0.01):
+def train_network(size, iterations=5000, learning_rate=0.01):
     """
     Actual gradient descent, initialize to random, then iterate over weights = weights - eta* grdmse(weights)
     :param size: Size of weights, so 9 for the XOR network, 256 for MNIST
@@ -240,17 +165,16 @@ def train_network(size, data, labels, iterations=5000, learning_rate=0.01):
 
     # Just need MSE and grdmse
 
-    mserror = np.zeros((iterations,1))
-    misclassified = np.zeros((iterations,1))
+    mserror = np.zeros((iterations, 1))
+    misclassified = np.zeros((iterations, 1))
     for i in range(iterations):
         # Get MSE with current weights
         mserror[i], misclassified[i] = mse(weights)
 
         # Get gradient
-        gradient_weights = grdmse_other(weights)
+        gradient_weights = grdmse(weights)
 
         # update weights with gradient descent
         weights = weights - learning_rate * gradient_weights
-
 
     return weights
