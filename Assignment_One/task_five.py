@@ -134,7 +134,7 @@ def grdmse(weights):
     :param weights:
     :return:
     """
-    eta = 1e-3
+    eta = 1e-5
 
     # Now since it is a function of 9 variables, need to do the gradient over 9 time
     # (f(1+e,2,3,4,5,6,7,8,9) - f(1,2,3,4,5,6,7,8,9))/e for example
@@ -162,7 +162,7 @@ def train_network(size, iterations=5000, learning_rate=0.01):
     :return:
     """
 
-    weights = np.random.uniform(low=-0.5, high=0.5, size=size)
+    weights = np.random.uniform(low=-1.5, high=1.5, size=size)
 
     # Just need MSE and grdmse
 
@@ -179,8 +179,8 @@ def train_network(size, iterations=5000, learning_rate=0.01):
         weights = weights - learning_rate * gradient_weights
 
     iterations = [i for i in range(iterations)]
-    plt.plot(iterations, mserror, label='MSE')
-    #plt.plot(iterations, misclassified, label='# Misclassified')
+    #plt.plot(iterations, mserror, label='MSE')
+    plt.plot(iterations, misclassified, label='# Misclassified')
     plt.ylabel("Value")
     plt.xlabel("Iteration")
     plt.legend(loc='best')
