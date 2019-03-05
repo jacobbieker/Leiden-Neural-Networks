@@ -29,8 +29,9 @@ class Perceptron(object):
                 label = label[0]
                 print(inputs[:-1].shape)
                 print(self.weights.shape)
-                self.weights[:,0] += self.learning_rate * (label - prediction) * inputs
-                inputs[:-1] += self.learning_rate * (label - prediction)
+                # TODO Fix something here
+                self.weights[:,label] = self.learning_rate * (label - prediction) * inputs
+                #inputs[:-1] += self.learning_rate * (label - prediction)
 
 x_train, y_train, x_test, y_test = mnist_data("data")
 
