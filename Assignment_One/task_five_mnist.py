@@ -1,6 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
-
+from .mnist import mnist_data
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
@@ -15,6 +14,25 @@ def tanh(x):
 
 
 def break_weights(weights):
+    """
+    Weights are for 256 input nodes, 30 hidden nodes, 10 output nodes
+
+    So
+
+    256 weights + 256 bias for first node
+
+    256 * 30 weights for first node to hidden
+
+    30 * 10 for weights from hidden to output
+
+
+
+    30 weights and 30 bias for hidden nodes
+
+
+    :param weights:
+    :return:
+    """
     bias_node_hidden = weights[4:6]
     bias_node_hidden = np.reshape(bias_node_hidden, (2, 1))
     bias_node_output = np.reshape(weights[8], (1, 1))
@@ -162,7 +180,7 @@ def train_network(size, iterations=5000, learning_rate=0.01):
     :return:
     """
 
-    weights = np.random.uniform(low=-0.5, high=0.5, size=size)
+    weights = np.random.rand(size)
 
     # Just need MSE and grdmse
 
@@ -178,15 +196,6 @@ def train_network(size, iterations=5000, learning_rate=0.01):
         # update weights with gradient descent
         weights = weights - learning_rate * gradient_weights
 
-    iterations = [i for i in range(iterations)]
-    plt.plot(iterations, mserror, label='MSE')
-    #plt.plot(iterations, misclassified, label='# Misclassified')
-    plt.ylabel("Value")
-    plt.xlabel("Iteration")
-    plt.legend(loc='best')
-    plt.title("Task Five")
-    plt.show()
+
 
     return weights
-
-train_network(9)
