@@ -1,10 +1,12 @@
 from mnist import mnist_data
 import numpy as np
 from sklearn.metrics.pairwise import pairwise_distances as dist
-from myplot import heatmap
-
-x_train, y_train, x_test, y_test = mnist_data("data")
-
+from sklearn.metrics import confusion_matrix
+import itertools
+from matplotlib import pyplot as plt
+from sys import argv
+from sys import exit
+#from myplot import heatmap
 
 def clump_vectors(images, labels, dist_measure="euclidean"):
     """
@@ -101,45 +103,13 @@ def classify_on_centers(image, centers, dist_measure="euclidean"):
 
     return min_center_index
 
-center_lists, ri_list, list_of_center_distances, num_elements_per_label, \
-    overlap = clump_vectors(x_train, y_train)
-
-heatmap(overlap, np.arange(10), np.arange(10), valfmt="{x:.0f}",
-        textcolors=['white', 'black'], vmax = 25, cmap = 'hot')
-
-#==============================================================================
-# the heat map shows the overlap between the clusters in Euclidean distance;
-# e.g. the (i, j)th value = r_i + r_j - d_ij, the diagonal gives the diameter
-# of each cluster. The results show significant overlap, which is often more
-# than half the diameter of the corresponding clusters, hence we would expect
-# classification performance to be low. One limitation of this overlap matrix
-# is that it is completely dependent on the extremum of each cluster, hence 
-# does not provide any information about the distribution of values within the
-# clusters. A more informative measure might be to plot the overlap matrix for
-# the first 75% of values from the center.
-#==============================================================================
-
 # Task 2
-# Training set prediction
-yhat_train = np.zeros(len(x_train))
-for i in range(len(x_train)):
-    yhat_train[i] = classify_on_centers(x_train[i].reshape(256), center_lists)
-
-# Test set prediction
-yhat_test = np.zeros(len(x_test))
-for i in range(len(x_test)):
-    yhat_test[i] = classify_on_centers(x_test[i].reshape(256), center_lists)
-    
-
-from sklearn.metrics import confusion_matrix
-import itertools
-from matplotlib import pyplot as plt
 
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
                           title='Confusion matrix',
                           cmap=plt.cm.Blues,
-                          sums = False, **kwargs):
+                          sums = False, plotnum=0, **kwargs):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -147,6 +117,7 @@ def plot_confusion_matrix(cm, classes,
     Taken from the sklearn examples
 
     """
+    plt.figure(plotnum)
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
         print("Normalized confusion matrix")
@@ -208,22 +179,74 @@ def plot_confusion_matrix(cm, classes,
                      verticalalignment="center",
                      fontsize = 8,
                      color="white" if precfig.norm(prec[i, j]) > 0.5 else "black")
+        if plotnum != 2:
+            plt.show(block=False)
+        else:
+            plt.show(block=True)
             
-# Compute and plot confusion matrix
-train_cm = confusion_matrix(y_train, yhat_train)
-test_cm = confusion_matrix(y_test, yhat_test)
-
-plot_confusion_matrix(train_cm, range(10),
-                      title = "Confusion Matrix - Training Set",
-                      vmax = 30, sums = True)
-plot_confusion_matrix(test_cm, range(10),
-                      title = "Confusion Matrix - Test Set",
-                      vmax = 30, sums = True)
-
-# Manually compare y_test and yhat_test
-np.asarray([np.reshape(y_test, 999), yhat_test])
-
-plot_confusion_matrix(overlap, range(10), title = "Overlap Matrix", vmax = 25)
-
-
-
+#==============================================================================
+#  Main
+#==============================================================================
+if __name__ == '__main__':
+    
+    valid_dist = ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan']
+    if argv[1] in valid_dist:
+        dist_measure = argv[1]
+    else:
+        exit("invalid distance measure, example usage: task_one <dist_meas>\n"+
+              "valid inputs: cityblock, cosine, euclidean, l1, l2, manhattan\n")
+        
+    
+    # Task 1
+    # load data
+    x_train, y_train, x_test, y_test = mnist_data("data")
+    
+    center_lists, ri_list, list_of_center_distances, num_elements_per_label, \
+        overlap = clump_vectors(x_train, y_train, dist_measure=dist_measure)
+    
+    plot_confusion_matrix(overlap, np.arange(10),
+                          title='Overlap Matrix - '+dist_measure,
+                          cmap = plt.cm.Reds, vmax = 25)
+    
+    #==============================================================================
+    # the Overlap Matrix shows the overlap between the clusters in Euclidean distance;
+    # e.g. the (i, j)th value = r_i + r_j - d_ij, the diagonal gives the diameter
+    # of each cluster. The results show significant overlap, which is often more
+    # than half the diameter of the corresponding clusters, hence we would expect
+    # classification performance to be low. One limitation of this overlap matrix
+    # is that it is completely dependent on the extremum of each cluster, hence 
+    # does not provide any information about the distribution of values within the
+    # clusters. A more informative measure might be to plot the overlap matrix for
+    # the first 75% of values from the center.
+    #==============================================================================
+    
+    # Task 2
+    # Training set prediction
+    yhat_train = np.zeros(len(x_train))
+    for i in range(len(x_train)):
+        yhat_train[i] = classify_on_centers(x_train[i].reshape(256),
+                  center_lists, dist_measure=dist_measure)
+    
+    # Test set prediction
+    yhat_test = np.zeros(len(x_test))
+    for i in range(len(x_test)):
+        yhat_test[i] = classify_on_centers(x_test[i].reshape(256),
+                 center_lists, dist_measure=dist_measure)
+        
+    
+    # Compute and plot confusion matrix
+    train_cm = confusion_matrix(y_train, yhat_train)
+    
+    plot_confusion_matrix(train_cm, range(10),
+                          title = "Confusion Matrix - Train Set - "+dist_measure,
+                          vmax = 30, sums = True, plotnum=1)
+    
+    test_cm = confusion_matrix(y_test, yhat_test)
+    
+    plot_confusion_matrix(test_cm, range(10),
+                          title = "Confusion Matrix - Test Set - "+dist_measure,
+                          vmax = 30, sums = True, plotnum=2)
+    
+    # Manually compare y_test and yhat_test
+    #np.asarray([np.reshape(y_test, 999), yhat_test])
+    
