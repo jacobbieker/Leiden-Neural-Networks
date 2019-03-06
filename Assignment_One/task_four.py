@@ -3,7 +3,7 @@ from mnist import mnist_data
 
 class Perceptron(object):
 
-    def __init__(self, num_inputs, epochs=5000, learning_rate=0.001):
+    def __init__(self, num_inputs, epochs=500, learning_rate=0.001):
         self.weights = np.random.uniform(low=-1., high=1., size=(num_inputs+1)*10).reshape(257,10)
         self.weights[-1:,:] = 1
         self.epochs = epochs
@@ -18,6 +18,21 @@ class Perceptron(object):
 
         # Return the activation
         return activation
+
+    def predict_on_set(self, test_inputs, labels):
+        training_inputs = np.c_[test_inputs, np.ones(test_inputs.shape[0])] # Add biases
+        combined = np.asarray(list(zip(training_inputs, labels)))
+        right = 0
+        wrong = 0
+        for inputs, label in combined:
+            prediction = self.predict(inputs)
+            if prediction == label:
+                right += 1
+            else:
+                wrong += 1
+
+        print(right/(wrong+right))
+
 
     def train(self, training_inputs, labels):
         training_inputs = np.c_[training_inputs, np.ones(training_inputs.shape[0])] # Add biases
@@ -55,3 +70,4 @@ x_test = x_test.reshape((-1,256))
 network = Perceptron(256)
 
 network.train(x_train, y_train)
+network.predict_on_set(x_test, y_test)
