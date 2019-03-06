@@ -182,6 +182,15 @@ def train_network(size, iterations=5000, learning_rate=0.01):
 
     weights = np.random.rand(size)
 
+    num_inputs = 256
+    num_hidden = 30
+    num_output = 10
+
+    weights_one = np.random.normal(0, 1, (num_hidden, num_inputs))
+    weights_two = np.random.normal(0, 1, (num_output, num_hidden))
+    bias_one = np.random.random((num_hidden, 1))
+    bias_two = np.random.random((num_output, 1))
+
     # Just need MSE and grdmse
 
     mserror = np.zeros((iterations, 1))
