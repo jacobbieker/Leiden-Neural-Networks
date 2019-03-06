@@ -57,7 +57,7 @@ class Perceptron(object):
                     wrong += 1
                 self.weights[:-1] += self.learning_rate * (ldir * inputs[:-1]).T
                 self.weights[-1:] += self.learning_rate * ldir.T
-            print(right/(right + wrong))
+            #print(right/(right + wrong))
 
 x_train, y_train, x_test, y_test = mnist_data("data")
 
@@ -69,5 +69,6 @@ x_test = x_test.reshape((-1,256))
 
 network = Perceptron(256)
 
+network.predict_on_set(x_test, y_test)
 network.train(x_train, y_train)
 network.predict_on_set(x_test, y_test)
