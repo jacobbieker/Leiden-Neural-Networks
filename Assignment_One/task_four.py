@@ -3,8 +3,8 @@ from mnist import mnist_data
 
 class Perceptron(object):
 
-    def __init__(self, num_inputs, epochs=5000, learning_rate=0.01):
-        self.weights = np.random.uniform(low=-0.5, high=0.5, size=(num_inputs+1)*10).reshape(257,10)
+    def __init__(self, num_inputs, epochs=5000, learning_rate=0.001):
+        self.weights = np.random.uniform(low=-1., high=1., size=(num_inputs+1)*10).reshape(257,10)
         self.weights[-1:,:] = 1
         self.epochs = epochs
         self.learning_rate = learning_rate
@@ -23,26 +23,27 @@ class Perceptron(object):
         print(training_inputs.shape)
         training_inputs = np.c_[training_inputs, np.ones(training_inputs.shape[0])] # Add biases
         print(training_inputs.shape)
-        num_before_update = 100
+        num_before_update = 10
         combined = np.asarray(list(zip(training_inputs, labels)))
         for _ in range(self.epochs):
             right = 0
             wrong = 0
-            ldir = np.zeros((10,1))
             np.random.shuffle(combined)
             num_batch = int(np.floor(len(combined)/num_before_update))
 
             for batch in range(num_batch):
                 large_input = np.zeros(257)
                 for inputs, label in combined[batch*num_before_update:(batch+1)*num_before_update]:
+                    ldir = np.zeros((10,1))
                     prediction = self.predict(inputs)
                     label = label[0]
                     np.add(large_input, inputs)
-                    for j in range(10):
-                        if j == label:
-                            ldir[j] += 1
-                        else:
-                            ldir[j] -= 1
+                    if prediction == label:
+                        ldir[label] += 1
+                    else:
+                        ldir[label] += 1
+                        ldir[prediction] -= 1
+                    #print(ldir)
 
                 # TODO Fix something here
                     if prediction == label:
@@ -54,10 +55,10 @@ class Perceptron(object):
                 # Update the weights
                 #print(self.weights[-1:,:].shape)
                 #exit()
-                self.weights[:-1] += self.learning_rate * (ldir * large_input[:-1]).T
-                self.weights[-1:] += self.learning_rate * ldir.T
+                    self.weights[:-1] += self.learning_rate * (ldir * inputs[:-1]).T
+                    self.weights[-1:] += self.learning_rate * ldir.T
                 #training_inputs[:,-1] += self.learning_rate * (prediction - label)
-            print(right/wrong)
+            print(right/(right + wrong))
 
 x_train, y_train, x_test, y_test = mnist_data("data")
 
