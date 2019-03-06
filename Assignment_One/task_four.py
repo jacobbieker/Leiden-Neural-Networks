@@ -20,44 +20,28 @@ class Perceptron(object):
         return activation
 
     def train(self, training_inputs, labels):
-        print(training_inputs.shape)
         training_inputs = np.c_[training_inputs, np.ones(training_inputs.shape[0])] # Add biases
-        print(training_inputs.shape)
-        num_before_update = 10
         combined = np.asarray(list(zip(training_inputs, labels)))
         for _ in range(self.epochs):
             right = 0
             wrong = 0
             np.random.shuffle(combined)
-            num_batch = int(np.floor(len(combined)/num_before_update))
+            for inputs, label in combined:
+                ldir = np.zeros((10,1))
+                prediction = self.predict(inputs)
+                label = label[0]
+                if prediction == label:
+                    ldir[label] += 1
+                else:
+                    ldir[label] += 10
+                    ldir[prediction] -= 10
 
-            for batch in range(num_batch):
-                large_input = np.zeros(257)
-                for inputs, label in combined[batch*num_before_update:(batch+1)*num_before_update]:
-                    ldir = np.zeros((10,1))
-                    prediction = self.predict(inputs)
-                    label = label[0]
-                    np.add(large_input, inputs)
-                    if prediction == label:
-                        ldir[label] += 1
-                    else:
-                        ldir[label] += 1
-                        ldir[prediction] -= 1
-                    #print(ldir)
-
-                # TODO Fix something here
-                    if prediction == label:
-                        right += 1
-                    else:
-                        wrong += 1
-                # Add shuffling, get 100 random samples each time, add +1 or -1 each time for each one to ldir, then update
-                # at once, just adding +1, -1 worked to get up and changing a bit more
-                # Update the weights
-                #print(self.weights[-1:,:].shape)
-                #exit()
-                    self.weights[:-1] += self.learning_rate * (ldir * inputs[:-1]).T
-                    self.weights[-1:] += self.learning_rate * ldir.T
-                #training_inputs[:,-1] += self.learning_rate * (prediction - label)
+                if prediction == label:
+                    right += 1
+                else:
+                    wrong += 1
+                self.weights[:-1] += self.learning_rate * (ldir * inputs[:-1]).T
+                self.weights[-1:] += self.learning_rate * ldir.T
             print(right/(right + wrong))
 
 x_train, y_train, x_test, y_test = mnist_data("data")
