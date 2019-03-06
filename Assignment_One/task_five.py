@@ -179,8 +179,8 @@ def train_network(size, iterations=5000, learning_rate=0.01):
         weights = weights - learning_rate * gradient_weights
 
     iterations = [i for i in range(iterations)]
-    #plt.plot(iterations, mserror, label='MSE')
-    plt.plot(iterations, misclassified, label='# Misclassified')
+    plt.plot(iterations, mserror, label='MSE')
+    #plt.plot(iterations, misclassified, label='# Misclassified')
     plt.ylabel("Value")
     plt.xlabel("Iteration")
     plt.legend(loc='best')
