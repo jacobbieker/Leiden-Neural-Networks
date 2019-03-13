@@ -205,6 +205,16 @@ def train_network(size, iterations=100000, learning_rate=0.1, init_low=-1.5, ini
     return weights, iterations, mserror, misclassified
 
 
+
+"""
+NOTE: To change the activation function from sigmoid to tanh or relu, the call for foreward_prop in xor_net() has to be
+changed from sigmoid to tanh or relu. 
+
+To change the initialization function, pass an init_method that takes a low, high, and size argument, or replace it by hand
+for the zeros and ones initializations.
+
+"""
+
 learning_rates = [1.,0.1,0.01,0.001]
 weight_finals = []
 iterations_final = []
