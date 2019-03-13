@@ -149,7 +149,7 @@ def plot_confusion_matrix(cm, classes,
 #  Main
 #==============================================================================
 def run_exp(num1, num2, feature, *args):
-    x_train, y_train, x_test, y_test = load_data(5, 7)
+    x_train, y_train, x_test, y_test = load_data(num1, num2)
     train_feat = feature(x_train, *args)
     test_feat = feature(x_test, *args)
     epdf, classes, prior, class_size = plot_hist(train_feat, y_train)
