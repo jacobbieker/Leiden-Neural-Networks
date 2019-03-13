@@ -1,18 +1,20 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+np.random.seed(1)
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
 def relu(x):
-    return max(0, x)
+    return max(0, x.all())
 
 
 def tanh(x):
     return np.tanh(x)
 
+used_activation = [sigmoid, relu, tanh]
 
 def break_weights(weights):
     bias_node_hidden = weights[4:6]
@@ -75,7 +77,7 @@ def xor_net(x1, x2, weights):
     input_value = np.reshape(np.asarray([x1, x2]), (2, 1))  # Get it as a column vector
 
     hidden_layer_output = foreward_prop(input_value, weights_input, bias_node_hidden, weights_hidden, bias_node_output,
-                                        sigmoid)
+                                        tanh)
 
     # Now hidden_layer_output outputs to the single output node
 
@@ -154,7 +156,7 @@ def grdmse(weights):
     return grad_weights
 
 
-def train_network(size, iterations=5000, learning_rate=0.01):
+def train_network(size, iterations=10000, learning_rate=0.1, init_low=-1.5, init_high=1.5, init_method=np.random.uniform):
     """
     Actual gradient descent, initialize to random, then iterate over weights = weights - eta* grdmse(weights)
     :param size: Size of weights, so 9 for the XOR network, 256 for MNIST
@@ -162,7 +164,7 @@ def train_network(size, iterations=5000, learning_rate=0.01):
     :return:
     """
 
-    weights = np.random.uniform(low=-1.5, high=1.5, size=size)
+    weights = init_method(low=init_low, high=init_high, size=size)
 
     # Just need MSE and grdmse
 
@@ -179,14 +181,38 @@ def train_network(size, iterations=5000, learning_rate=0.01):
         weights = weights - learning_rate * gradient_weights
 
     iterations = [i for i in range(iterations)]
-    plt.plot(iterations, mserror, label='MSE')
-    #plt.plot(iterations, misclassified, label='# Misclassified')
-    plt.ylabel("Value")
-    plt.xlabel("Iteration")
-    plt.legend(loc='best')
-    plt.title("Task Five")
-    plt.show()
 
-    return weights
+    return weights, iterations, mserror, misclassified
 
-train_network(9)
+
+weight_finals = []
+iterations_final = []
+mserror_final = []
+misclassified_final = []
+lows = [-1.5, -1., 0.0, 0.5]
+highs =  [1.0, 2.0]
+for low in lows:
+    for high in highs:
+        weights, iterations, mserror, misclassified = train_network(9, init_low=low, init_high=high)
+        weight_finals.append(weights)
+        iterations_final.append(iterations)
+        mserror_final.append(mserror)
+        misclassified_final.append(misclassified)
+
+# Now plot
+fig, axes = plt.subplots(2, 1)
+for l_index, low in enumerate(lows):
+    for h_index, high in enumerate(highs):
+        axes[0].plot(iterations_final[l_index*h_index], mserror_final[l_index*h_index], label="Uniform: L: {} H: {}".format(low, high))
+        axes[0].set_xlabel("Iteration")
+        axes[0].set_ylabel("Mean Squared Error")
+        axes[0].legend(loc="best", fontsize="xx-small")
+        #axes[0].set_aspect('equal', adjustable='box')
+        axes[1].plot(iterations_final[l_index*h_index], misclassified_final[l_index*h_index], label="Uniform: L: {} H: {}".format(low, high))
+        axes[1].set_xlabel("Iteration")
+        axes[1].set_ylabel("Number Misclassified")
+        axes[1].legend(loc="best", fontsize="xx-small")
+        #axes[1].set_aspect('equal', adjustable='box')
+fig.tight_layout()
+fig.savefig("Task5_tanh.png", dpi=300)
+fig.show()
