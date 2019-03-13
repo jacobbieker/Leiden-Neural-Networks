@@ -2,6 +2,7 @@ from mnist import mnist_data
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
+import itertools
 
 def ilogit(x, b):
     return 1/(1+np.exp(-b*x))
