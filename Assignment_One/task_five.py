@@ -8,13 +8,28 @@ def sigmoid(x):
 
 
 def relu(x):
-    return max(0, x.all())
+    return np.maximum(np.zeros(x.shape), x)
 
 
 def tanh(x):
     return np.tanh(x)
 
-used_activation = [sigmoid, relu, tanh]
+x_values = np.linspace(-10,10)
+relu_vals = relu(x_values)
+tanh_vals = tanh(x_values)
+sigmoid_vals = sigmoid(x_values)
+
+plt.plot(x_values, relu_vals, label="ReLU")
+plt.plot(x_values, tanh_vals, label="Tanh")
+plt.plot(x_values, sigmoid_vals, label="Sigmoid")
+plt.xlabel("Input")
+plt.ylabel("Output")
+plt.legend(loc='best')
+plt.title("Activation Functions")
+#plt.tight_layout()
+plt.ylim((-1.,1.5))
+plt.savefig("Activations.png", dpi=300)
+plt.show()
 
 def break_weights(weights):
     bias_node_hidden = weights[4:6]
@@ -77,7 +92,7 @@ def xor_net(x1, x2, weights):
     input_value = np.reshape(np.asarray([x1, x2]), (2, 1))  # Get it as a column vector
 
     hidden_layer_output = foreward_prop(input_value, weights_input, bias_node_hidden, weights_hidden, bias_node_output,
-                                        tanh)
+                                        sigmoid)
 
     # Now hidden_layer_output outputs to the single output node
 
@@ -132,7 +147,8 @@ def mse(weights):
 
 def grdmse(weights):
     """
-    Do it the change eta one
+    Gradient Descent by changing eta
+
     :param weights:
     :return:
     """
@@ -156,11 +172,15 @@ def grdmse(weights):
     return grad_weights
 
 
-def train_network(size, iterations=10000, learning_rate=0.1, init_low=-1.5, init_high=1.5, init_method=np.random.uniform):
+def train_network(size, iterations=100000, learning_rate=0.1, init_low=-1.5, init_high=1.5, init_method=np.random.uniform):
     """
-    Actual gradient descent, initialize to random, then iterate over weights = weights - eta* grdmse(weights)
-    :param size: Size of weights, so 9 for the XOR network, 256 for MNIST
-    :param eta:
+    Trains the XOR network
+    :param size: Size of the weights, 9 for XOR, 256 for MNIST (not implemented)
+    :param iterations: Iterations to run for
+    :param learning_rate: Learning rate
+    :param init_low: Low value for the initialization distribution
+    :param init_high: High value for the initialization distribution
+    :param init_method: Method of initialization
     :return:
     """
 
@@ -185,14 +205,54 @@ def train_network(size, iterations=10000, learning_rate=0.1, init_low=-1.5, init
     return weights, iterations, mserror, misclassified
 
 
+
+"""
+NOTE: To change the activation function from sigmoid to tanh or relu, the call for foreward_prop in xor_net() has to be
+changed from sigmoid to tanh or relu. 
+
+To change the initialization function, pass an init_method that takes a low, high, and size argument, or replace it by hand
+for the zeros and ones initializations.
+
+"""
+
+learning_rates = [1.,0.1,0.01,0.001]
+weight_finals = []
+iterations_final = []
+mserror_final = []
+misclassified_final = []
+for lr in learning_rates:
+    np.random.seed(1)
+    weights, iterations, mserror, misclassified = train_network(9, learning_rate=lr)
+    weight_finals.append(weights)
+    iterations_final.append(iterations)
+    mserror_final.append(mserror)
+    misclassified_final.append(misclassified)
+
+fig, axes = plt.subplots(2, 1, sharex="all")
+for index, lr in enumerate(learning_rates):
+    axes[0].plot(iterations_final[index], mserror_final[index], label="LR: {}".format(lr))
+    axes[0].set_xlabel("Iteration")
+    axes[0].set_ylabel("Mean Squared Error")
+    axes[0].legend(loc="best", fontsize="xx-small")
+    axes[1].plot(iterations_final[index], misclassified_final[index], label="LR: {}".format(lr))
+    axes[1].set_xlabel("Iteration")
+    axes[1].set_ylabel("Number Misclassified")
+    axes[1].legend(loc="best", fontsize="xx-small")
+
+fig.suptitle("Initializer: Uniform Act: sigmoid")
+fig.savefig("Task5_sigmoid_lr.png", dpi=300)
+fig.show()
+
 weight_finals = []
 iterations_final = []
 mserror_final = []
 misclassified_final = []
 lows = [-1.5, -1., 0.0, 0.5]
 highs =  [1.0, 2.0]
+
 for low in lows:
     for high in highs:
+        np.random.seed(1)
         weights, iterations, mserror, misclassified = train_network(9, init_low=low, init_high=high)
         weight_finals.append(weights)
         iterations_final.append(iterations)
@@ -200,7 +260,7 @@ for low in lows:
         misclassified_final.append(misclassified)
 
 # Now plot
-fig, axes = plt.subplots(2, 1)
+fig, axes = plt.subplots(2, 1, sharex="all")
 for l_index, low in enumerate(lows):
     for h_index, high in enumerate(highs):
         axes[0].plot(iterations_final[l_index*h_index], mserror_final[l_index*h_index], label="Uniform: L: {} H: {}".format(low, high))
@@ -213,6 +273,7 @@ for l_index, low in enumerate(lows):
         axes[1].set_ylabel("Number Misclassified")
         axes[1].legend(loc="best", fontsize="xx-small")
         #axes[1].set_aspect('equal', adjustable='box')
-fig.tight_layout()
-fig.savefig("Task5_tanh.png", dpi=300)
+
+fig.suptitle("Initializer: Uniform Act: sigmoid")
+fig.savefig("Task5_sigmoid.png", dpi=300)
 fig.show()
