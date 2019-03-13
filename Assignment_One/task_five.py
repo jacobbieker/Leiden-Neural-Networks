@@ -242,6 +242,7 @@ highs =  [1.0, 2.0]
 
 for low in lows:
     for high in highs:
+        np.random.seed(1)
         weights, iterations, mserror, misclassified = train_network(9, init_low=low, init_high=high)
         weight_finals.append(weights)
         iterations_final.append(iterations)
@@ -263,6 +264,6 @@ for l_index, low in enumerate(lows):
         axes[1].legend(loc="best", fontsize="xx-small")
         #axes[1].set_aspect('equal', adjustable='box')
 
-fig.suptitle("Initializer: Uniform Act: ReLU")
-fig.savefig("Task5_relu.png", dpi=300)
+fig.suptitle("Initializer: Uniform Act: sigmoid")
+fig.savefig("Task5_sigmoid.png", dpi=300)
 fig.show()
