@@ -205,8 +205,7 @@ if __name__ == '__main__':
         overlap = clump_vectors(x_train, y_train, dist_measure=dist_measure)
     
     plot_confusion_matrix(overlap, np.arange(10),
-                          title='Overlap Matrix - '+dist_measure,
-                          cmap = plt.cm.Reds, vmax = 25)
+                          title='Overlap Matrix - '+dist_measure, vmax = 25)
     
     #==============================================================================
     # the Overlap Matrix shows the overlap between the clusters in Euclidean distance;
@@ -247,6 +246,10 @@ if __name__ == '__main__':
                           title = "Confusion Matrix - Test Set - "+dist_measure,
                           vmax = 30, sums = True, plotnum=2)
     
+    train_acc = sum(yhat_train == y_train[:,0])/len(y_train)
+    test_acc = sum(yhat_test == y_test[:,0])/len(y_test)
+    
+    print("training accuracy:", train_acc, "\ntest accuracy:", test_acc)
     # Manually compare y_test and yhat_test
     #np.asarray([np.reshape(y_test, 999), yhat_test])
     
