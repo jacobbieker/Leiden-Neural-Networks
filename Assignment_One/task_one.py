@@ -17,8 +17,6 @@ def clump_vectors(images, labels, dist_measure="euclidean"):
     :return: Centers, radii for each center, distances between centers, and number of elements belonging to each center
     """
 
-    # TODO What does the Ci, ni mean in the instructions? Not clear what he is saying
-
     center_lists = []
     print(center_lists)
     for i in range(10):
@@ -35,7 +33,6 @@ def clump_vectors(images, labels, dist_measure="euclidean"):
         center_lists.append(center_i)
 
     # Now calculate the ri and pairwise distances for this
-    # TODO Check this, this is calculating over 0-9 points, not all points
     ri_list = []
     for i in range(10):
         center_i = center_lists[i]
@@ -51,7 +48,6 @@ def clump_vectors(images, labels, dist_measure="euclidean"):
                     max_distance = distance
         ri_list.append(max_distance)
 
-    # TODO Count number with elements that have label Ci which is then ni
     num_elements_per_label = np.zeros((10))
     for label in labels:
         num_elements_per_label[label[0]] += 1
