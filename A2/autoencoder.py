@@ -21,7 +21,7 @@ from keras.layers import Dense, Input
 from keras.layers import Conv2D, Flatten, Lambda
 from keras.layers import Reshape, Conv2DTranspose
 from keras.models import Model
-from keras.datasets import mnist
+from keras.datasets import mnist, cifar10
 from keras.losses import mse, binary_crossentropy
 from keras.utils import plot_model
 from keras import backend as K
@@ -75,6 +75,8 @@ def plot_results(models,
     z_mean, _, _ = encoder.predict(x_test,
                                    batch_size=batch_size)
     plt.figure(figsize=(12, 10))
+    print(z_mean.shape)
+    print(y_test.shape)
     plt.scatter(z_mean[:, 0], z_mean[:, 1], c=y_test)
     plt.colorbar()
     plt.xlabel("z[0]")
@@ -118,11 +120,20 @@ def plot_results(models,
 # MNIST dataset
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
+scale=0.
+
+np.random.seed(221191)
+x_train = x_train.astype('float32') / 255
+x_test = x_test.astype('float32') / 255
+noise = np.random.normal(loc=0., scale=scale, size=x_train.shape)
+x_train = x_train + noise
+noise = np.random.normal(loc=0., scale=scale, size=x_test.shape)
+x_test = x_test + noise
+x_train = np.clip(x_train, 0., 1.)
+x_test = np.clip(x_test, 0., 1.)
 image_size = x_train.shape[1]
 x_train = np.reshape(x_train, [-1, image_size, image_size, 1])
 x_test = np.reshape(x_test, [-1, image_size, image_size, 1])
-x_train = x_train.astype('float32') / 255
-x_test = x_test.astype('float32') / 255
 
 # network parameters
 input_shape = (image_size, image_size, 1)
@@ -160,7 +171,7 @@ z = Lambda(sampling, output_shape=(latent_dim,), name='z')([z_mean, z_log_var])
 # instantiate encoder model
 encoder = Model(inputs, [z_mean, z_log_var, z], name='encoder')
 encoder.summary()
-plot_model(encoder, to_file='vae_cnn_encoder.png', show_shapes=True)
+plot_model(encoder, to_file='vae_noisy_{}_cnn_encoder.png'.format(scale), show_shapes=True)
 
 # build decoder model
 latent_inputs = Input(shape=(latent_dim,), name='z_sampling')
@@ -184,7 +195,7 @@ outputs = Conv2DTranspose(filters=1,
 # instantiate decoder model
 decoder = Model(latent_inputs, outputs, name='decoder')
 decoder.summary()
-plot_model(decoder, to_file='vae_cnn_decoder.png', show_shapes=True)
+plot_model(decoder, to_file='vae_noisy_{}_cnn_decoder.png'.format(scale), show_shapes=True)
 
 # instantiate VAE model
 outputs = decoder(encoder(inputs)[2])
@@ -215,7 +226,7 @@ if __name__ == '__main__':
     vae.add_loss(vae_loss)
     vae.compile(optimizer='rmsprop')
     vae.summary()
-    plot_model(vae, to_file='vae_cnn.png', show_shapes=True)
+    plot_model(vae, to_file='vae_noisy_{}_cnn.png'.format(scale), show_shapes=True)
 
     if args.weights:
         vae.load_weights(args.weights)
@@ -225,6 +236,6 @@ if __name__ == '__main__':
                 epochs=epochs,
                 batch_size=batch_size,
                 validation_data=(x_test, None))
-        vae.save_weights('vae_cnn_mnist.h5')
+        vae.save_weights('vae_cnn_noisy_{}.h5'.format(scale))
 
     plot_results(models, data, batch_size=batch_size, model_name="vae_cnn")
