@@ -12,10 +12,9 @@ latent vector from a Gaussian distribution with mean=0 and std=1.
 "Auto-encoding variational bayes."
 https://arxiv.org/abs/1312.6114
 '''
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+#import os
+#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+#os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 from keras.layers import Dense, Input
 from keras.layers import Conv2D, Flatten, Lambda
@@ -70,7 +69,7 @@ def plot_results(models,
     x_test, y_test = data
     os.makedirs(model_name, exist_ok=True)
 
-    filename = os.path.join(model_name, "vae_mean.png")
+    filename = os.path.join(model_name, "vae_{}_mean.png".format(scale))
     # display a 2D plot of the digit classes in the latent space
     z_mean, _, _ = encoder.predict(x_test,
                                    batch_size=batch_size)
@@ -84,7 +83,7 @@ def plot_results(models,
     plt.savefig(filename)
     plt.show()
 
-    filename = os.path.join(model_name, "digits_over_latent.png")
+    filename = os.path.join(model_name, "digits_over_latent_{}.png".format(scale))
     # display a 30x30 2D manifold of digits
     n = 30
     digit_size = 28
@@ -120,7 +119,7 @@ def plot_results(models,
 # MNIST dataset
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
-scale=0.
+scale=0.635
 
 np.random.seed(221191)
 x_train = x_train.astype('float32') / 255
