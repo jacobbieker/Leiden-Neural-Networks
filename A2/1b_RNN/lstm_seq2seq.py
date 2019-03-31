@@ -50,7 +50,6 @@ models are more common in this domain.
     ](https://arxiv.org/abs/1406.1078)
 '''
 from __future__ import print_function
-
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense
 import numpy as np
@@ -60,7 +59,7 @@ epochs = 100  # Number of epochs to train for.
 latent_dim = 256  # Latent dimensionality of the encoding space.
 num_samples = 10000  # Number of samples to train on.
 # Path to the data txt file on disk.
-data_path = 'fra-eng/fra.txt'
+data_path = 'fra.txt'
 
 # Vectorize the data.
 input_texts = []
@@ -221,11 +220,25 @@ def decode_sequence(input_seq):
     return decoded_sentence
 
 
-for seq_index in range(100):
+correct = 0
+for seq_index in range(10000):
     # Take one sequence (part of the training set)
     # for trying out decoding.
     input_seq = encoder_input_data[seq_index: seq_index + 1]
     decoded_sentence = decode_sequence(input_seq)
-    print('-')
-    print('Input sentence:', input_texts[seq_index])
-    print('Decoded sentence:', decoded_sentence)
+    if decoded_sentence == target_texts[seq_index][1:]:
+        correct += 1
+#
+#    print('-')
+#    print('Input sentence:', input_texts[seq_index])
+#    print('Decoded sentence:', decoded_sentence[:-2])
+#    print('Correct sentence:', target_texts[seq_index][1:])
+
+print('Accuracy:', correct/10000)
+
+
+def translate(in_str):
+    trans_from = np.zeros((1, max_encoder_seq_length, num_encoder_tokens))
+    for t, char in enumerate(in_str):
+        trans_from[0, t, input_token_index[char]] = 1.
+    return decode_sequence(trans_from)
