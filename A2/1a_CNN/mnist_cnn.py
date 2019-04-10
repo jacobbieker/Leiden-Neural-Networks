@@ -5,7 +5,7 @@ Gets to 99.17% test accuracy after 12 epochs batch = 128 <<< base case
 99.16 batch = 64, 15% increase in runtime vs 256
 #######
 no dropout
-99.115
+99.14%
 '''
 
 from __future__ import print_function
@@ -54,10 +54,10 @@ model.add(Conv2D(32, kernel_size=(3, 3),
                  input_shape=input_shape))
 model.add(Conv2D(64, (3, 3), activation='relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-# model.add(Dropout(0.25))
+model.add(Dropout(0.25))
 model.add(Flatten())
 model.add(Dense(128, activation='relu'))
-# model.add(Dropout(0.5))
+model.add(Dropout(0.5))
 model.add(Dense(num_classes, activation='softmax'))
 
 model.compile(loss=keras.losses.categorical_crossentropy,
