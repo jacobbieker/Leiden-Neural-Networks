@@ -171,11 +171,10 @@ class data_prep():
 
     def as_wrdvec(self):
         en_mod, fr_mod = self.load_w2v()
+        in_max_len = 0
+        tar_max_len = 0
         in_vec_list = []
         tar_vec_list = []
-        self.encoder_input_data = np.empty((0, 0, 300))
-        self.decoder_input_data = np.empty((0, 0, 200))
-        self.decoder_target_data = np.empty((0, 0, 200))
 
         with open(self.data_path, 'r', encoding='utf-8') as f:
             lines = f.read().split('\n')
@@ -186,8 +185,166 @@ class data_prep():
                 continue
             in_vec_list.append(input_vecs)
             tar_vec_list.append(target_vecs)
+            in_max_len = max((in_max_len, input_vecs.shape[0]))
+            tar_max_len = max((tar_max_len, target_vecs.shape[0]))
 
-        return in_vec_list, tar_vec_list
+        n = len(in_vec_list)
+        self.encoder_input_data = np.zeros((n, in_max_len, 300))
+        self.decoder_input_data = np.zeros((n, tar_max_len, 202))
+        self.decoder_target_data = np.zeros((n, tar_max_len-1, 202))
+        for i, (in_arr, tar_arr) in enumerate(zip(in_vec_list, tar_vec_list)):
+            in_len = in_arr.shape[0]
+            tar_len = tar_arr.shape[0]
+            self.encoder_input_data[i, :in_len, :] = in_arr
+            self.decoder_input_data[i, :tar_len, :] = tar_arr
+            self.decoder_target_data[i, :tar_len-1, :] = tar_arr[1:, :]
+        # french word vecs are in the range of +- 1.35, normalise for use with
+        # tanh activation function
+        self.decoder_input_data /= 1.35
+        self.decoder_target_data /= 1.35
 
-            # We use "tab" as the "start sequence" character
-            # for the targets, and "\n" as "end sequence" character.
+
+class seq2seq():
+    def __init__(self, data_prep):
+        self.model = None
+        self.enc_model = None
+        self.dec_model = None
+        self.data = data_prep
+        # self.enc_in_dat = data_prep.encoder_input_data
+        # self.dec_in_dat = data_prep.decoder_input_data
+        # self.dec_tar_dat = data_prep.decoder_target_data
+
+    def twolayer(self, act_func, loss_func, latent_dim=256):
+        # act_funcs: softmax, tanh, linear
+        # loss_funcs: categorical_crossentropy, mean_squared_error
+        # Define an input sequence and process it.
+        encoder_inputs = Input(shape=(None,
+                                      self.data.encoder_input_data.shape[2]))
+        encoder_l1 = LSTM(latent_dim, return_state=True, return_sequences=True)
+        encoder_outputs, state_h1, state_c1 = encoder_l1(encoder_inputs)
+        encoder_l2 = LSTM(latent_dim, return_state=True)
+        encoder_outputs, state_h2, state_c2 = encoder_l2(encoder_outputs)
+        # We discard `encoder_outputs` and only keep the states.
+        encoder_states = [state_h1, state_c1, state_h2, state_c2]
+
+        # Set up the decoder, using `encoder_states` as initial state.
+        decoder_inputs = Input(shape=(None,
+                                      self.data.decoder_input_data.shape[2]))
+        # We set up our decoder to return full output sequences, and to return
+        # internal states as well. We don't use the return states in the
+        # training model, but we will use them in inference.
+        decoder_l1 = LSTM(latent_dim, return_sequences=True, return_state=True)
+        decoder_outputs, _, _ = decoder_l1(decoder_inputs,
+                                           initial_state=[state_h1, state_c1])
+        decoder_l2 = LSTM(latent_dim, return_sequences=True, return_state=True)
+        decoder_outputs, _, _ = decoder_l2(decoder_outputs,
+                                           initial_state=[state_h2, state_c2])
+        decoder_dense = Dense(self.data.decoder_input_data.shape[2],
+                              activation=act_func)
+        decoder_outputs = decoder_dense(decoder_outputs)
+
+        # Define the model that will turn `encoder_input_data` &
+        # `decoder_input_data` into `decoder_target_data`
+        self.model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
+        self.model.compile(optimizer='rmsprop', loss=loss_func)
+
+        # Next: inference mode (sampling).
+        # Here's the drill:
+        # 1) encode input and retrieve initial decoder state
+        # 2) run one step of decoder with this initial state
+        # and a "start of sequence" token as target.
+        # Output will be the next target token
+        # 3) Repeat with the current target token and current states
+
+        # Define sampling models
+        self.enc_model = Model(encoder_inputs, encoder_states)
+
+        decoder_state_input_h = Input(shape=(latent_dim,))
+        decoder_state_input_c = Input(shape=(latent_dim,))
+        decoder_state_input_h2 = Input(shape=(latent_dim,))
+        decoder_state_input_c2 = Input(shape=(latent_dim,))
+        decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c,
+                                 decoder_state_input_h2, decoder_state_input_c2]
+
+        decoder_outputs, decoder_state_h1, decoder_state_c1 = \
+            decoder_l1(decoder_inputs, initial_state=decoder_states_inputs[:2])
+        decoder_outputs, decoder_state_h2, decoder_state_c2 = \
+            decoder_l2(decoder_outputs, initial_state=decoder_states_inputs[-2:])
+        decoder_states = [decoder_state_h1, decoder_state_c1,
+                          decoder_state_h2, decoder_state_c2]
+        decoder_outputs = decoder_dense(decoder_outputs)
+
+        self.dec_model = Model([decoder_inputs] + decoder_states_inputs,
+                               [decoder_outputs] + decoder_states)
+
+    # Run training
+    def fit(self, name, batch_sz=64, epochs=100):
+        self.model.fit([self.data.encoder_input_data,
+                        self.data.decoder_input_data],
+                       self.data.decoder_target_data,
+                       batch_size=batch_sz,
+                       epochs=epochs,
+                       validation_split=0.2)
+        # Save model
+        self.model.save(name)
+
+# TODO: put the following into function / class defs
+reverse_input_char_index = dict(
+    (i, char) for char, i in dat.input_token_index.items())
+reverse_target_char_index = dict(
+    (i, char) for char, i in dat.target_token_index.items())
+
+
+def decode_sequence(input_seq):
+    # Encode the input as state vectors.
+    states_value = s2s_char.enc_model.predict(input_seq)
+
+    # Generate empty target sequence of length 1.
+    target_seq = np.zeros((1, 1, dat.decoder_input_data.shape[2]))
+    # Populate the first character of target sequence with the start character.
+    target_seq[0, 0, dat.target_token_index['\t']] = 1.
+
+    # Sampling loop for a batch of sequences
+    # (to simplify, here we assume a batch of size 1).
+    stop_condition = False
+    decoded_sentence = ''
+    while not stop_condition:
+        output_tokens, h1, c1, h2, c2 = s2s_char.dec_model.predict(
+            [target_seq] + states_value)
+
+        # Sample a token
+        sampled_token_index = np.argmax(output_tokens[0, -1, :])
+        sampled_char = reverse_target_char_index[sampled_token_index]
+        decoded_sentence += sampled_char
+
+        # Exit condition: either hit max length
+        # or find stop character.
+        if (sampled_char == '\n' or
+           len(decoded_sentence) > max_decoder_seq_length):
+            stop_condition = True
+
+        # Update the target sequence (of length 1).
+        target_seq = np.zeros((1, 1, dat.decoder_input_data.shape[2]))
+        target_seq[0, 0, sampled_token_index] = 1.
+
+        # Update states
+        states_value = [h1, c1, h2, c2]
+
+    return decoded_sentence
+
+
+correct = 0
+for seq_index in range(640):
+    # Take one sequence (part of the training set)
+    # for trying out decoding.
+    input_seq = dat.encoder_input_data[seq_index: seq_index + 1]
+    decoded_sentence = decode_sequence(input_seq)
+    if decoded_sentence == dat.target_texts[seq_index][1:]:
+        correct += 1
+#
+#    print('-')
+#    print('Input sentence:', input_texts[seq_index])
+#    print('Decoded sentence:', decoded_sentence[:-2])
+#    print('Correct sentence:', target_texts[seq_index][1:])
+
+print('Accuracy:', correct/640)
