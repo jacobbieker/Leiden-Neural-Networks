@@ -191,7 +191,7 @@ class data_prep():
         n = len(in_vec_list)
         self.encoder_input_data = np.zeros((n, in_max_len, 300))
         self.decoder_input_data = np.zeros((n, tar_max_len, 202))
-        self.decoder_target_data = np.zeros((n, tar_max_len-1, 202))
+        self.decoder_target_data = np.zeros((n, tar_max_len, 202))
         for i, (in_arr, tar_arr) in enumerate(zip(in_vec_list, tar_vec_list)):
             in_len = in_arr.shape[0]
             tar_len = tar_arr.shape[0]
