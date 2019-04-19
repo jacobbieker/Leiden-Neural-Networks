@@ -23,6 +23,10 @@ class data_prep():
         self.decode_index = 'undef for word2vec'
         self.en_stop = ['a', 'and', 'of', 'to']
         self.embed_type = None
+        if txtfile == "fra.txt":
+            self.target_lang = "fr"
+        elif txtfile == "deu.txt":
+            self.target_lang = "de"
 
     def as_char(self):
         self.embed_type = "char"
@@ -95,21 +99,17 @@ class data_prep():
     def load_w2v(self):
         en_path = './w2v_models/GoogleNews-vectors-negative300.bin'
         fr_path = './w2v_models/fr_200_skip_cut100.bin'
+        de_path = './w2v_models/german.model'
+        if self.target_lang == "fr":
+            target_path = fr_path
+        elif self.target_lang == "de":
+            target_path = de_path
         self.input_token_index = w2v.load_word2vec_format(
                 en_path, binary=True, limit=int(2E5))
         self.target_token_index = w2v.load_word2vec_format(
-                fr_path, binary=True)
+                target_path, binary=True)
 
-    def load_w2v_de(self):
-        en_path = './w2v_models/GoogleNews-vectors-negative300.bin'
-        fr_path = './w2v_models/fr_200_skip_cut100.bin'
-        de_path = './w2v_models/german.model'
-        en_mod = w2v.load_word2vec_format(en_path, binary=True, limit=int(2E5))
-        fr_mod = w2v.load_word2vec_format(fr_path, binary=True)
-        de_mod = w2v.load_word2vec_format(de_path, binary=True)
-        return en_mod, fr_mod, de_mod
-
-    def de_line_preproc(self, line, en_mod, de_mod):
+    def de_line_preproc(self, line):
         skip_line = 0  # boolean if true, then skip line
         input_text, target_text = line.split('\t')
         # simplifications
@@ -139,21 +139,22 @@ class data_prep():
             # 4 stop words have capitalised versions in dict
             if word in self.en_stop:
                 word = word.capitalize()
-            if word not in en_mod.vocab:
+            if word not in self.input_token_index.vocab:
                 word = word.lower()
-            if word not in en_mod.vocab:
+            if word not in self.input_token_index.vocab:
                 skip_line = 2
                 unk_line_inputs.append((word, target_words))
             else:
-                input_vecs = np.vstack((input_vecs, en_mod.word_vec(word)))
+                input_vecs = np.vstack(
+                        (input_vecs, self.input_token_index.word_vec(word)))
         for word in target_words:
             if word == '':
                 continue
-            if word not in de_mod.vocab:
+            if word not in self.target_token_index.vocab:
                 skip_line = 2
                 unk_line_targets.append((word, target_words))
             else:
-                vec = de_mod.word_vec(word)
+                vec = self.target_token_index.word_vec(word)
                 vec = np.pad(vec, (2, 0), 'constant')
                 target_vecs = np.vstack((target_vecs, vec))
         start_of_line = np.append([1, 0], np.zeros(200))
@@ -164,9 +165,9 @@ class data_prep():
             self.target_texts.append("\t" + target_text + "\n")
 
         return skip_line, input_vecs, target_vecs, unk_line_inputs, \
-               unk_line_targets
+            unk_line_targets
 
-    def line_preproc(self, line):
+    def fr_line_preproc(self, line):
         skip_line = 0  # boolean if true, then skip line
         input_text, target_text = line.split('\t')
         # simplifications
@@ -232,6 +233,10 @@ class data_prep():
         unk_input = []
         unk_target = []
         self.load_w2v()
+        if self.target_lang == 'de':
+            line_preproc = self.de_line_preproc
+        elif self.target_lang == 'fr':
+            line_preproc = self.fr_line_preproc
 
         with open(self.data_path, 'r', encoding='utf-8') as f:
             lines = f.read().split('\n')
@@ -248,6 +253,10 @@ class data_prep():
     def as_wrdvec(self):
         self.embed_type = "wordvec"
         self.load_w2v()
+        if self.target_lang == 'de':
+            line_preproc = self.de_line_preproc
+        elif self.target_lang == 'fr':
+            line_preproc = self.fr_line_preproc
         in_max_len = 0
         tar_max_len = 0
         in_vec_list = []
