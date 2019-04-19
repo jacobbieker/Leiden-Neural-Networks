@@ -431,10 +431,11 @@ class seq2seq():
 
         return decoded_sentences, n
 
-    def train_acc(self, range_obj):
+    def train_acc(self, beg=0, end=np.inf):
+        end = min(end, len(self.data.input_texts))
         correct = 0
         incorrects = []
-        preds, n = self.decode_sequence(self.data.encoder_input_data[range_obj])
+        preds, n = self.decode_sequence(self.data.encoder_input_data[beg:end])
         for (truth, pred) in zip(self.data.target_texts, preds):
             if truth[1:-1] == pred:
                 correct += 1
