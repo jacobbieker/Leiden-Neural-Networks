@@ -241,8 +241,7 @@ class data_prep():
         with open(self.data_path, 'r', encoding='utf-8') as f:
             lines = f.read().split('\n')
         for line in lines[: min(self.num_samples, len(lines) - 1)]:
-            skip, input_vecs, target_vecs, unk_in, unk_out = \
-                self.line_preproc(line)
+            skip, input_vecs, target_vecs, unk_in, unk_out = line_preproc(line)
             if skip == 1:
                 continue
             unk_input.extend(unk_in)
@@ -265,8 +264,7 @@ class data_prep():
         with open(self.data_path, 'r', encoding='utf-8') as f:
             lines = f.read().split('\n')
         for line in lines[: min(self.num_samples, len(lines) - 1)]:
-            skip, input_vecs, target_vecs, unk_in, unk_out = \
-                self.line_preproc(line)
+            skip, input_vecs, target_vecs, unk_in, unk_out = line_preproc(line)
             if skip > 0:
                 continue
             in_vec_list.append(input_vecs)
@@ -376,8 +374,8 @@ class seq2seq():
                        epochs=epochs,
                        validation_split=0.2)
         # Save model
-        self.model.save_weights(
-                "ef_w2v_" + self.act_func + "_" + self.loss_func + ".h5")
+        self.model.save_weights("e" + self.data.target_lang + "_w2v_" + \
+                                self.act_func + "_" + self.loss_func + ".h5")
 
     def decode_sequence(self, input_seq):
         assert len(input_seq.shape) == 3, "input sequence should be 3 dimensional"
