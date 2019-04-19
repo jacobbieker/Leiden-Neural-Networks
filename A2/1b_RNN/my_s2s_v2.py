@@ -97,7 +97,8 @@ class data_prep():
             (i, char) for char, i in self.target_token_index.items())
 
     def load_w2v(self):
-        en_path = './w2v_models/GoogleNews-vectors-negative300.bin'
+        # en_path = './w2v_models/GoogleNews-vectors-negative300.bin'
+        en_path = './w2v_models/en_2e5.bin'
         fr_path = './w2v_models/fr_200_skip_cut100.bin'
         de_path = './w2v_models/german.model'
         if self.target_lang == "fr":
@@ -374,7 +375,7 @@ class seq2seq():
         self.twolayer(act_func, loss_func, latent_dim)
 
     # Run training
-    def fit(self, name, batch_sz=64, epochs=100):
+    def fit(self, pre, batch_sz=64, epochs=100):
         self.model.fit([self.data.encoder_input_data,
                         self.data.decoder_input_data],
                        self.data.decoder_target_data,
@@ -382,8 +383,9 @@ class seq2seq():
                        epochs=epochs,
                        validation_split=0.2)
         # Save model
-        self.model.save_weights("e" + self.data.target_lang + "_w2v_" + \
-                                self.act_func + "_" + self.loss_func + ".h5")
+        self.model.save_weights(pre + "_e" + self.data.target_lang + "_" +
+                                self.data.embed_type + "_" + self.act_func +
+                                "_" + self.loss_func + ".h5")
 
     def decode_sequence(self, input_seq):
         assert len(input_seq.shape) == 3, "input sequence should be 3 dimensional"
