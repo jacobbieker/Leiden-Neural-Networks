@@ -4,6 +4,8 @@ from keras.layers import Input, LSTM, Dense
 import numpy as np
 from gensim.models import KeyedVectors as w2v
 from re import match, sub
+from sklearn.metrics.pairwise import cosine_distances
+
 
 class data_prep():
     def __init__(self, txtfile, num_samples=10000):
@@ -12,15 +14,18 @@ class data_prep():
         self.input_texts = []
         self.target_texts = []
         # tokens are characters or word vectors depending on the tokeniser used
-        self.input_token_index = 'undef for word2vec'
-        self.target_token_index = 'undef for word2vec'
+        self.input_token_index = 'undef; run tokeniser function'
+        self.target_token_index = 'undef; run tokeniser function'
         self.encoder_input_data = 'undef; run tokeniser function'
         self.decoder_input_data = 'undef; run tokeniser function'
         self.decoder_target_data = 'undef; run tokeniser function'
+        self.reverse_input_char_index = 'undef for word2vec'
+        self.decode_index = 'undef for word2vec'
         self.en_stop = ['a', 'and', 'of', 'to']
-
+        self.embed_type = None
 
     def as_char(self):
+        self.embed_type = "char"
         input_tokens = set()
         target_tokens = set()
         with open(self.data_path, 'r', encoding='utf-8') as f:
@@ -82,8 +87,20 @@ class data_prep():
                     # and will not include the start character.
                     self.decoder_target_data[i, t-1,
                                              self.target_token_index[char]] = 1.
+        self.reverse_input_char_index = dict(
+            (i, char) for char, i in self.input_token_index.items())
+        self.decode_index = dict(
+            (i, char) for char, i in self.target_token_index.items())
 
     def load_w2v(self):
+        en_path = './w2v_models/GoogleNews-vectors-negative300.bin'
+        fr_path = './w2v_models/fr_200_skip_cut100.bin'
+        self.input_token_index = w2v.load_word2vec_format(
+                en_path, binary=True, limit=int(2E5))
+        self.target_token_index = w2v.load_word2vec_format(
+                fr_path, binary=True)
+
+    def load_w2v_de(self):
         en_path = './w2v_models/GoogleNews-vectors-negative300.bin'
         fr_path = './w2v_models/fr_200_skip_cut100.bin'
         de_path = './w2v_models/german.model'
@@ -149,7 +166,7 @@ class data_prep():
         return skip_line, input_vecs, target_vecs, unk_line_inputs, \
                unk_line_targets
 
-    def line_preproc(self, line, en_mod, fr_mod):
+    def line_preproc(self, line):
         skip_line = 0  # boolean if true, then skip line
         input_text, target_text = line.split('\t')
         # simplifications
@@ -182,22 +199,23 @@ class data_prep():
             # 4 stop words have capitalised versions in dict
             if word in self.en_stop:
                 word = word.capitalize()
-            if word not in en_mod.vocab:
+            if word not in self.input_token_index.vocab:
                 word = word.lower()
-            if word not in en_mod.vocab:
+            if word not in self.input_token_index.vocab:
                 skip_line = 2
                 unk_line_inputs.append((word, target_words))
             else:
-                input_vecs = np.vstack((input_vecs, en_mod.word_vec(word)))
+                input_vecs = np.vstack(
+                        (input_vecs, self.input_token_index.word_vec(word)))
         for word in target_words:
             word = sub("[^\w']", '', word)  # remove punctuation
             if word == '':
                 continue
-            if word not in fr_mod.vocab:
+            if word not in self.target_token_index.vocab:
                 skip_line = 2
                 unk_line_targets.append((word, target_words))
             else:
-                vec = fr_mod.word_vec(word)
+                vec = self.target_token_index.word_vec(word)
                 vec = np.pad(vec, (2, 0), 'constant')
                 target_vecs = np.vstack((target_vecs, vec))
         start_of_line = np.append([1, 0], np.zeros(200))
@@ -213,13 +231,13 @@ class data_prep():
     def dryrun_wrdvec(self):  # show words not covered by the w2v models
         unk_input = []
         unk_target = []
-        en_mod, fr_mod, de_mod = self.load_w2v()
+        self.load_w2v()
 
         with open(self.data_path, 'r', encoding='utf-8') as f:
             lines = f.read().split('\n')
         for line in lines[: min(self.num_samples, len(lines) - 1)]:
             skip, input_vecs, target_vecs, unk_in, unk_out = \
-                self.line_preproc(line, en_mod, fr_mod)
+                self.line_preproc(line)
             if skip == 1:
                 continue
             unk_input.extend(unk_in)
@@ -228,7 +246,8 @@ class data_prep():
         return unk_input, unk_target
 
     def as_wrdvec(self):
-        en_mod, fr_mod, de_mod = self.load_w2v()
+        self.embed_type = "wordvec"
+        self.load_w2v()
         in_max_len = 0
         tar_max_len = 0
         in_vec_list = []
@@ -238,7 +257,7 @@ class data_prep():
             lines = f.read().split('\n')
         for line in lines[: min(self.num_samples, len(lines) - 1)]:
             skip, input_vecs, target_vecs, unk_in, unk_out = \
-                self.line_preproc(line, en_mod, fr_mod)
+                self.line_preproc(line)
             if skip > 0:
                 continue
             in_vec_list.append(input_vecs)
@@ -268,6 +287,8 @@ class seq2seq():
         self.enc_model = None
         self.dec_model = None
         self.data = data_prep
+        self.act_func = None
+        self.loss_func = None
         # self.enc_in_dat = data_prep.encoder_input_data
         # self.dec_in_dat = data_prep.decoder_input_data
         # self.dec_tar_dat = data_prep.decoder_target_data
@@ -276,6 +297,8 @@ class seq2seq():
         # act_funcs: softmax, tanh, linear
         # loss_funcs: categorical_crossentropy, mean_squared_error
         # Define an input sequence and process it.
+        self.act_func = act_func
+        self.loss_func = loss_func
         encoder_inputs = Input(shape=(None,
                                       self.data.encoder_input_data.shape[2]))
         encoder_l1 = LSTM(latent_dim, return_state=True, return_sequences=True)
@@ -344,51 +367,64 @@ class seq2seq():
                        epochs=epochs,
                        validation_split=0.2)
         # Save model
-        self.model.save(name)
+        self.model.save_weights(
+                "ef_w2v_" + self.act_func + "_" + self.loss_func + ".h5")
 
+    def decode_sequence(self, input_seq):
+        assert len(input_seq.shape) == 3, "input sequence should be 3 dimensional"
+        vec_sol = np.append([1, 0], np.zeros(200)).reshape((1, -1))
+        vec_eol = np.append([0, 1], np.zeros(200)).reshape((1, -1))
+
+        # Encode the input as state vectors.
+        states_value = self.enc_model.predict(input_seq)
+
+        # Generate empty target sequences of length 1.
+        n = input_seq.shape[0]
+        target_seq = np.zeros((n, 1, dat.decoder_input_data.shape[2]))
+        # Populate the first character of target sequence with the s.o.l. char.
+        if self.data.embed_type == 'char':
+            target_seq[:, 0, self.data.target_token_index['\t']] = 1.
+        elif self.data.embed_type == 'wordvec':
+            target_seq[:, 0, 0] = 1.
+
+        # Sampling loop for a batch of sequences
+        # (to simplify, here we assume a batch of size 1).
+        # stop_condition = False
+        decoded_sentences = ["" for i in range(n)]
+        for i in range(self.data.decoder_input_data.shape[1]):
+            output_tokens, h1, c1, h2, c2 = self.dec_model.predict(
+                [target_seq] + states_value)
+            target_seq.fill(0)
+            states_value = [h1, c1, h2, c2]
+
+            if self.data.embed_type == 'char':
+                # Sample a token
+                sampled_token_index = list(
+                        np.argmax(output_tokens, 2).flatten())
+                target_seq[list(range(n)), 0, sampled_token_index] = 1.
+                decoded_sentences = [a + decode_index(b) for (a, b) in
+                                    zip(decoded_sentences, sampled_token_index)]
+            elif self.data.embed_type == 'wordvec':
+                for j in range(n):
+                    pred_vec = output_tokens[j, :, :]
+                    sim_word = self.data.target_token_index.similar_by_vector(
+                            pred_vec[0, 2:], 1)[0][0]
+                    sim_vec = self.data.target_token_index.word_vec(sim_word)
+                    sim_vec = np.pad(sim_vec, (2, 0), 'constant').reshape(1, -1)
+                    vec_list = [sim_vec, vec_sol, vec_eol]
+                    word_list = [sim_word, "\t", "\n"]
+                    arg = np.argmin(
+                            [cosine_distances(pred_vec, v) for v in vec_list])
+                    target_seq[j, :, :] = vec_list[arg]
+                    decoded_sentences[j] += word_list[arg]
+
+        return decoded_sentences
+
+    def test(self):
+        if self.data.embed_type == "char":
 # TODO: put the following into function / class defs
-reverse_input_char_index = dict(
-    (i, char) for char, i in dat.input_token_index.items())
-reverse_target_char_index = dict(
-    (i, char) for char, i in dat.target_token_index.items())
 
 
-def decode_sequence(input_seq):
-    # Encode the input as state vectors.
-    states_value = s2s_char.enc_model.predict(input_seq)
-
-    # Generate empty target sequence of length 1.
-    target_seq = np.zeros((1, 1, dat.decoder_input_data.shape[2]))
-    # Populate the first character of target sequence with the start character.
-    target_seq[0, 0, dat.target_token_index['\t']] = 1.
-
-    # Sampling loop for a batch of sequences
-    # (to simplify, here we assume a batch of size 1).
-    stop_condition = False
-    decoded_sentence = ''
-    while not stop_condition:
-        output_tokens, h1, c1, h2, c2 = s2s_char.dec_model.predict(
-            [target_seq] + states_value)
-
-        # Sample a token
-        sampled_token_index = np.argmax(output_tokens[0, -1, :])
-        sampled_char = reverse_target_char_index[sampled_token_index]
-        decoded_sentence += sampled_char
-
-        # Exit condition: either hit max length
-        # or find stop character.
-        if (sampled_char == '\n' or
-           len(decoded_sentence) > max_decoder_seq_length):
-            stop_condition = True
-
-        # Update the target sequence (of length 1).
-        target_seq = np.zeros((1, 1, dat.decoder_input_data.shape[2]))
-        target_seq[0, 0, sampled_token_index] = 1.
-
-        # Update states
-        states_value = [h1, c1, h2, c2]
-
-    return decoded_sentence
 
 
 correct = 0
@@ -396,8 +432,8 @@ for seq_index in range(640):
     # Take one sequence (part of the training set)
     # for trying out decoding.
     input_seq = dat.encoder_input_data[seq_index: seq_index + 1]
-    decoded_sentence = decode_sequence(input_seq)
-    if decoded_sentence == dat.target_texts[seq_index][1:]:
+    decoded_sentences = decode_sequence(input_seq)
+    if decoded_sentences == dat.target_texts[seq_index][1:]:
         correct += 1
 #
 #    print('-')
