@@ -104,8 +104,8 @@ venv.bak/
 .mypy_cache/
 
 # local backup
-/backups
+A2/1b_RNN/backups/
 
 # w2v model binaries
-/w2v_models
+A2/1b_RNN/w2v_models/
 
