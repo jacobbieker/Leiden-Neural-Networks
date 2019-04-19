@@ -3,7 +3,7 @@ from keras.models import Model
 from keras.layers import Input, LSTM, Dense
 import numpy as np
 from gensim.models import KeyedVectors as w2v
-from re import match, sub
+from re import match, sub, DOTALL
 from sklearn.metrics.pairwise import cosine_distances
 
 
@@ -186,6 +186,7 @@ class data_prep():
         target_text = sub("'", "' ", target_text).lower()
         target_text = sub("-", " ", target_text)
         target_text = sub("œ", "oe", target_text)
+        target_text = sub(" *$", "", target_text)
         input_words = input_text.split()
         target_words = target_text.split()
 
@@ -419,33 +420,26 @@ class seq2seq():
                     sim_vec = self.data.target_token_index.word_vec(sim_word)
                     sim_vec = np.pad(sim_vec, (2, 0), 'constant').reshape(1, -1)
                     vec_list = [sim_vec, vec_sol, vec_eol]
-                    word_list = [sim_word, "\t", "\n"]
+                    word_list = [" " + sim_word, "\t", "\n"]
                     arg = np.argmin(
                             [cosine_distances(pred_vec, v) for v in vec_list])
                     target_seq[j, :, :] = vec_list[arg]
                     decoded_sentences[j] += word_list[arg]
+        for k, sen in enumerate(decoded_sentences):
+            sen = sen[1:]
+            decoded_sentences[k] = sub("\n.*", "", sen, flags=DOTALL)
 
-        return decoded_sentences
+        return decoded_sentences, n
 
-    def test(self):
-        if self.data.embed_type == "char":
-# TODO: put the following into function / class defs
+    def train_acc(self, range_obj):
+        correct = 0
+        incorrects = []
+        preds, n = self.decode_sequence(self.data.encoder_input_data[range_obj])
+        for (truth, pred) in zip(self.data.target_texts, preds):
+            if truth[1:-1] == pred:
+                correct += 1
+            else:
+                incorrects.append((truth[1:-1], pred))
+        print("Accuracy:", correct/n)
 
-
-
-
-correct = 0
-for seq_index in range(640):
-    # Take one sequence (part of the training set)
-    # for trying out decoding.
-    input_seq = dat.encoder_input_data[seq_index: seq_index + 1]
-    decoded_sentences = decode_sequence(input_seq)
-    if decoded_sentences == dat.target_texts[seq_index][1:]:
-        correct += 1
-#
-#    print('-')
-#    print('Input sentence:', input_texts[seq_index])
-#    print('Decoded sentence:', decoded_sentence[:-2])
-#    print('Correct sentence:', target_texts[seq_index][1:])
-
-print('Accuracy:', correct/640)
+        return correct/n, incorrects
