@@ -366,6 +366,13 @@ class seq2seq():
         self.dec_model = Model([decoder_inputs] + decoder_states_inputs,
                                [decoder_outputs] + decoder_states)
 
+    def reverse(self, act_func, loss_func, latent_dim=256):
+        zeros = np.all(self.data.encoder_input_data.shape == 0, axis=2)
+        for i, (sample, boo) in enumerate(
+                zip(self.data.encoder_input_data, zeros)):
+            self.data.encoder_input_data.shape[i, boo, :] = sample[boo][::-1, :]
+        self.twolayer(act_func, loss_func, latent_dim)
+
     # Run training
     def fit(self, name, batch_sz=64, epochs=100):
         self.model.fit([self.data.encoder_input_data,
