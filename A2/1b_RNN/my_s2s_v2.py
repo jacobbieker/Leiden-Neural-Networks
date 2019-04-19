@@ -116,10 +116,10 @@ class data_prep():
         # simplifications
         if match('\$?[0-9]', line):  # skip numbers
             skip_line = 1
-            return skip_line, _, _, _, _
+            return skip_line, None, None, None, None
         if "'" in input_text:  # skip abbrev english sentences
             skip_line = 1
-            return skip_line, _, _, _, _
+            return skip_line, None, None, None, None
         # cannot is not in en dict, whisky is spelt whiskey
         input_text = sub('cannot', 'can not', input_text)
         input_text = sub('whisky', 'whiskey', input_text)
@@ -174,10 +174,10 @@ class data_prep():
         # simplifications
         if match('\$?[0-9]', line):  # skip numbers
             skip_line = 1
-            return skip_line, _, _, _, _
+            return skip_line, None, None, None, None
         if "'" in input_text:  # skip abbrev english sentences
             skip_line = 1
-            return skip_line, _, _, _, _
+            return skip_line, None, None, None, None
         # cannot is not in en dict, whisky is spelt whiskey
         input_text = sub('cannot', 'can not', input_text)
         input_text = sub('whisky', 'whiskey', input_text)
@@ -368,10 +368,10 @@ class seq2seq():
                                [decoder_outputs] + decoder_states)
 
     def reverse(self, act_func, loss_func, latent_dim=256):
-        zeros = np.all(self.data.encoder_input_data.shape == 0, axis=2)
+        zeros = np.all(self.data.encoder_input_data == 0, axis=2)
         for i, (sample, boo) in enumerate(
                 zip(self.data.encoder_input_data, zeros)):
-            self.data.encoder_input_data.shape[i, boo, :] = sample[boo][::-1, :]
+            self.data.encoder_input_data[i, boo, :] = sample[boo][::-1, :]
         self.twolayer(act_func, loss_func, latent_dim)
 
     # Run training
