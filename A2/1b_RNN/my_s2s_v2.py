@@ -97,8 +97,8 @@ class data_prep():
             (i, char) for char, i in self.target_token_index.items())
 
     def load_w2v(self):
-        # en_path = './w2v_models/GoogleNews-vectors-negative300.bin'
-        en_path = './w2v_models/en_2e5.bin'
+        en_path = './w2v_models/GoogleNews-vectors-negative300.bin'
+        #en_path = './w2v_models/en_2e5.bin'
         fr_path = './w2v_models/fr_200_skip_cut100.bin'
         de_path = './w2v_models/german.model'
         if self.target_lang == "fr":
