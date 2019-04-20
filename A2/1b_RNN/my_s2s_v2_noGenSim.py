@@ -4,7 +4,7 @@ from keras.layers import Input, LSTM, Dense
 import numpy as np
 # from gensim.models import KeyedVectors as w2v
 from re import match, sub, DOTALL
-from sklearn.metrics.pairwise import cosine_distances
+# from sklearn.metrics.pairwise import cosine_distances
 from pickle import dump
 
 '''
