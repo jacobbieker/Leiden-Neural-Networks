@@ -5,7 +5,13 @@ import numpy as np
 from gensim.models import KeyedVectors as w2v
 from re import match, sub, DOTALL
 from sklearn.metrics.pairwise import cosine_distances
+from pickle import dump
 
+'''
+efr_wordvec_tanh_mean_squared_error: 29.559
+rev_efr_wordvec_tanh_mean_squared_error: 27.473%
+rev_ede_wordvec_tanh_mean_squared_error: 59.592%
+'''
 
 class data_prep():
     def __init__(self, txtfile, num_samples=10000):
@@ -298,6 +304,7 @@ class seq2seq():
         self.data = data_prep
         self.act_func = None
         self.loss_func = None
+        self.filename = None
         # self.enc_in_dat = data_prep.encoder_input_data
         # self.dec_in_dat = data_prep.decoder_input_data
         # self.dec_tar_dat = data_prep.decoder_target_data
@@ -382,10 +389,14 @@ class seq2seq():
                        batch_size=batch_sz,
                        epochs=epochs,
                        validation_split=0.2)
+        self.filename = pre + "_e" + self.data.target_lang + "_" + \
+            self.data.embed_type + "_" + self.act_func + "_" + self.loss_func
         # Save model
-        self.model.save_weights(pre + "_e" + self.data.target_lang + "_" +
-                                self.data.embed_type + "_" + self.act_func +
-                                "_" + self.loss_func + ".h5")
+        self.model.save_weights(self.filename + ".h5")
+
+    def loadwts(self, filename):
+        self.model.load_weights(filename)
+        self.filename = sub("\.h5", "", filename)
 
     def decode_sequence(self, input_seq):
         assert len(input_seq.shape) == 3, "input sequence should be 3 dimensional"
@@ -451,5 +462,7 @@ class seq2seq():
             else:
                 incorrects.append((truth[1:-1], pred))
         print("Accuracy:", correct/n)
+        with open(self.filename + '.list', 'wb') as f:
+            pickle.dump([correct/n] + incorrects, f)
 
         return correct/n, incorrects
