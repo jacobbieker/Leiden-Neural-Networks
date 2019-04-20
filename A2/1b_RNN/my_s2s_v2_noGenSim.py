@@ -450,7 +450,7 @@ class seq2seq():
                 sampled_token_index = list(
                         np.argmax(output_tokens, 2).flatten())
                 target_seq[list(range(n)), 0, sampled_token_index] = 1.
-                decoded_sentences = [a + self.decode_index[b] for (a, b) in
+                decoded_sentences = [a + self.data.decode_index[b] for (a, b) in
                                     zip(decoded_sentences, sampled_token_index)]
             elif self.data.embed_type == 'wordvec':
                 for j in range(n):
