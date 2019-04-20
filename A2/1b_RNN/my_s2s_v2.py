@@ -13,6 +13,7 @@ rev_efr_wordvec_tanh_mean_squared_error: 27.473%
 rev_ede_wordvec_tanh_mean_squared_error: 59.592%
 '''
 
+
 class data_prep():
     def __init__(self, txtfile, random_sample_flag, num_samples=10000):
         assert isinstance(random_sample_flag, bool), "flag should be boolean"
@@ -400,6 +401,88 @@ class seq2seq():
                 zip(self.data.encoder_input_data, zeros)):
             self.data.encoder_input_data[i, boo, :] = sample[boo][::-1, :]
         self.twolayer(act_func, loss_func, latent_dim)
+
+    def bidir(self, act_func, loss_func, latent_dim=256):
+        zeros = np.all(self.data.encoder_input_data == 0, axis=2)
+        for i, (sample, boo) in enumerate(
+                zip(self.data.encoder_input_data, zeros)):
+            self.data.encoder_input_data_rev[i, boo, :] = sample[boo][::-1, :]
+        self.twolayer(act_func, loss_func, latent_dim)
+
+    def twolang(self, act_func, loss_func, latent_dim=256):
+        # act_funcs: softmax, tanh, linear
+        # loss_funcs: categorical_crossentropy, mean_squared_error
+        # Define an input sequence and process it.
+        self.act_func = act_func
+        self.loss_func = loss_func
+        encoder_inputs = Input(shape=(None,
+                                      self.data.encoder_input_data.shape[2]))
+        encoder_l1 = LSTM(latent_dim, return_state=True, return_sequences=True)
+        encoder_outputs, state_h1, state_c1 = encoder_l1(encoder_inputs)
+        encoder_l2 = LSTM(latent_dim, return_state=True)
+        encoder_outputs, state_h2, state_c2 = encoder_l2(encoder_outputs)
+        # We discard `encoder_outputs` and only keep the states.
+        encoder_states = [state_h1, state_c1, state_h2, state_c2]
+
+        # Set up the decoder, using `encoder_states` as initial state.
+        frdecoder_inputs = Input(shape=(None,
+                                      self.data.decoder_input_data.shape[2]))
+        frdecoder_l1 = LSTM(latent_dim, return_sequences=True, return_state=True)
+        frdecoder_outputs, _, _ = frdecoder_l1(frdecoder_inputs,
+                                           initial_state=[state_h1, state_c1])
+        frdecoder_l2 = LSTM(latent_dim, return_sequences=True, return_state=True)
+        frdecoder_outputs, _, _ = frdecoder_l2(frdecoder_outputs,
+                                           initial_state=[state_h2, state_c2])
+        frdecoder_dense = Dense(self.data.decoder_input_data.shape[2],
+                              activation=act_func)
+        frdecoder_outputs = frdecoder_dense(frdecoder_outputs)
+
+        dedecoder_inputs = Input(shape=(None,
+                                      self.data.decoder_input_data.shape[2]))
+        dedecoder_l1 = LSTM(latent_dim, return_sequences=True, return_state=True)
+        dedecoder_outputs, _, _ = dedecoder_l1(dedecoder_inputs,
+                                           initial_state=[state_h1, state_c1])
+        dedecoder_l2 = LSTM(latent_dim, return_sequences=True, return_state=True)
+        dedecoder_outputs, _, _ = dedecoder_l2(dedecoder_outputs,
+                                           initial_state=[state_h2, state_c2])
+        dedecoder_dense = Dense(self.data.decoder_input_data.shape[2],
+                              activation=act_func)
+        dedecoder_outputs = dedecoder_dense(frdecoder_outputs)
+
+        # Define the model that will turn `encoder_input_data` &
+        # `decoder_input_data` into `decoder_target_data`
+        self.model = Model([encoder_inputs, frdecoder_inputs, dedecoder_inputs],
+                           [frdecoder_outputs, dedecoder_outputs])
+        self.model.compile(optimizer='rmsprop', loss=loss_func)
+
+        # Next: inference mode (sampling).
+        # Here's the drill:
+        # 1) encode input and retrieve initial decoder state
+        # 2) run one step of decoder with this initial state
+        # and a "start of sequence" token as target.
+        # Output will be the next target token
+        # 3) Repeat with the current target token and current states
+
+        # Define sampling models
+        self.enc_model = Model(encoder_inputs, encoder_states)
+
+        decoder_state_input_h = Input(shape=(latent_dim,))
+        decoder_state_input_c = Input(shape=(latent_dim,))
+        decoder_state_input_h2 = Input(shape=(latent_dim,))
+        decoder_state_input_c2 = Input(shape=(latent_dim,))
+        decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c,
+                                 decoder_state_input_h2, decoder_state_input_c2]
+
+        decoder_outputs, decoder_state_h1, decoder_state_c1 = \
+            decoder_l1(decoder_inputs, initial_state=decoder_states_inputs[:2])
+        decoder_outputs, decoder_state_h2, decoder_state_c2 = \
+            decoder_l2(decoder_outputs, initial_state=decoder_states_inputs[-2:])
+        decoder_states = [decoder_state_h1, decoder_state_c1,
+                          decoder_state_h2, decoder_state_c2]
+        decoder_outputs = decoder_dense(decoder_outputs)
+
+        self.dec_model = Model([decoder_inputs] + decoder_states_inputs,
+                               [decoder_outputs] + decoder_states)
 
     # Run training
     def fit(self, pre, batch_sz=64, epochs=100):
