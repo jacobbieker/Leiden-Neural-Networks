@@ -14,9 +14,11 @@ rev_ede_wordvec_tanh_mean_squared_error: 59.592%
 '''
 
 class data_prep():
-    def __init__(self, txtfile, num_samples=10000):
+    def __init__(self, txtfile, random_sample_flag, num_samples=10000):
+        assert isinstance(random_sample_flag, bool), "flag should be boolean"
         self.data_path = txtfile
         self.num_samples = num_samples  # Number of samples to train on.
+        self.random_sample = random_sample_flag
         self.input_texts = []
         self.target_texts = []
         # tokens are characters or word vectors depending on the tokeniser used
@@ -35,12 +37,18 @@ class data_prep():
             self.target_lang = "de"
 
     def as_char(self):
+        np.random.seed(1)
         self.embed_type = "char"
         input_tokens = set()
         target_tokens = set()
         with open(self.data_path, 'r', encoding='utf-8') as f:
             lines = f.read().split('\n')
-        for line in lines[: min(self.num_samples, len(lines) - 1)]:
+        sample_sz = min(self.num_samples, len(lines) - 1)
+        if self.random_sample:
+            sample = np.random.choice(lines, sample_sz, False)
+        else:
+            sample = lines[:sample_sz]
+        for line in sample:
             input_text, target_text = line.split('\t')
             # We use "tab" as the "start sequence" character
             # for the targets, and "\n" as "end sequence" character.
@@ -248,7 +256,12 @@ class data_prep():
 
         with open(self.data_path, 'r', encoding='utf-8') as f:
             lines = f.read().split('\n')
-        for line in lines[: min(self.num_samples, len(lines) - 1)]:
+        sample_sz = min(self.num_samples, len(lines) - 1)
+        if self.random_sample:
+            sample = np.random.choice(lines, sample_sz, False)
+        else:
+            sample = lines[:sample_sz]
+        for line in sample:
             skip, input_vecs, target_vecs, unk_in, unk_out = line_preproc(line)
             if skip == 1:
                 continue
@@ -271,7 +284,12 @@ class data_prep():
 
         with open(self.data_path, 'r', encoding='utf-8') as f:
             lines = f.read().split('\n')
-        for line in lines[: min(self.num_samples, len(lines) - 1)]:
+        sample_sz = min(self.num_samples, len(lines) - 1)
+        if self.random_sample:
+            sample = np.random.choice(lines, sample_sz, False)
+        else:
+            sample = lines[:sample_sz]
+        for line in sample:
             skip, input_vecs, target_vecs, unk_in, unk_out = line_preproc(line)
             if skip > 0:
                 continue
@@ -463,6 +481,6 @@ class seq2seq():
                 incorrects.append((truth[1:-1], pred))
         print("Accuracy:", correct/n)
         with open(self.filename + '.list', 'wb') as f:
-            pickle.dump([correct/n] + incorrects, f)
+            dump([correct/n] + incorrects, f)
 
         return correct/n, incorrects
