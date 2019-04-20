@@ -246,6 +246,7 @@ class data_prep():
             unk_line_targets
 
     def dryrun_wrdvec(self):  # show words not covered by the w2v models
+        np.random.seed(1)
         unk_input = []
         unk_target = []
         self.load_w2v()
@@ -271,6 +272,7 @@ class data_prep():
         return unk_input, unk_target
 
     def as_wrdvec(self):
+        np.random.seed(1)
         self.embed_type = "wordvec"
         self.load_w2v()
         if self.target_lang == 'de':
