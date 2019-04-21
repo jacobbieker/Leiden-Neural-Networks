@@ -3,8 +3,7 @@ import my_s2s_v2_noGenSim as my
 list models: [{plain, rev}latent_dim, act_func, loss_func, latent_dim]
 '''
 
-models=[["plain256", "softmax", "categorical_crossentropy", 256],
-        ["plain512", "softmax", "categorical_crossentropy", 512]]
+models=[["plain512", "softmax", "categorical_crossentropy", 512]]
 
 # de loop
 for model in models:
