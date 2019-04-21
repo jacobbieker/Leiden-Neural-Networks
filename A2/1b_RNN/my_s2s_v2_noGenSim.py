@@ -436,8 +436,6 @@ class seq2seq():
             target_seq[:, 0, 0] = 1.
 
         # Sampling loop for a batch of sequences
-        # (to simplify, here we assume a batch of size 1).
-        # stop_condition = False
         decoded_sentences = ["" for i in range(n)]
         for i in range(self.data.decoder_input_data.shape[1]):
             output_tokens, h1, c1, h2, c2 = self.dec_model.predict(
@@ -466,7 +464,8 @@ class seq2seq():
                     target_seq[j, :, :] = vec_list[arg]
                     decoded_sentences[j] += word_list[arg]
         for k, sen in enumerate(decoded_sentences):
-            sen = sen[1:]
+            if self.data.embed_type == "wordvec":
+                sen = sen[1:]
             decoded_sentences[k] = sub("\n.*", "", sen, flags=DOTALL)
 
         return decoded_sentences, n
