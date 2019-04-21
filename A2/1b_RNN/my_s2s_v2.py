@@ -511,7 +511,7 @@ class seq2seq():
 
         # Generate empty target sequences of length 1.
         n = input_seq.shape[0]
-        target_seq = np.zeros((n, 1, dat.decoder_input_data.shape[2]))
+        target_seq = np.zeros((n, 1, self.data.decoder_input_data.shape[2]))
         # Populate the first character of target sequence with the s.o.l. char.
         if self.data.embed_type == 'char':
             target_seq[:, 0, self.data.target_token_index['\t']] = 1.
@@ -533,7 +533,7 @@ class seq2seq():
                 sampled_token_index = list(
                         np.argmax(output_tokens, 2).flatten())
                 target_seq[list(range(n)), 0, sampled_token_index] = 1.
-                decoded_sentences = [a + decode_index(b) for (a, b) in
+                decoded_sentences = [a + self.data.decode_index[b] for (a, b) in
                                     zip(decoded_sentences, sampled_token_index)]
             elif self.data.embed_type == 'wordvec':
                 for j in range(n):
