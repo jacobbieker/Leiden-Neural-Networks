@@ -1,5 +1,5 @@
-import keras
-import numpy
+#import keras
+import numpy as np
 
 """
 
@@ -30,3 +30,35 @@ https://towardsdatascience.com/neural-machine-translation-using-seq2seq-with-ker
 
 
 """
+flines = None
+findex = []
+dlines = None
+dindex = []
+eng_words = []
+de_eng_words = []
+
+with open("fra.txt", "r") as french:
+    flines = french.read().split('\n')
+    for index, element in enumerate(flines):
+        eng_words.append(element.split('\t')[0])
+with open("deu.txt", "r") as german:
+    dlines = german.read().split('\n')
+    for index, element in enumerate(dlines):
+        de_eng_words.append(element.split('\t')[0])
+
+same_english = set(eng_words).intersection(de_eng_words)
+print(len(same_english))
+
+with open("fra2lang.txt", "w") as f:
+    with open("deu2lang.txt", "w") as g:
+        for line in same_english:
+            for element in dlines:
+                if element.split("\t")[0] in line:
+                    g.write(element + "\n")
+                    break
+            for element in flines:
+                if element.split("\t")[0] in line:
+                    f.write(element + "\n")
+                    break
+
+
