@@ -1,0 +1,70 @@
+
+
+for_ede_wordvec_tanh_mse.h5
+6534
+Accuracy: 0.06259565350474441
+for_ede_wordvec_tanh_mse.h5
+
+
+Skipped
+
+
+for_ede_wordvec_tanh_mae.h5
+6534
+Accuracy: 0.02785430058157331
+for_ede_wordvec_tanh_mae.h5
+
+
+
+
+rev_ede_wordvec_tanh_mae.h5
+6534
+Accuracy: 0.6337618610345883
+rev_ede_wordvec_tanh_mae.h5
+
+
+
+
+for_ede_wordvec_tanh_logcosh.h5
+6534
+Accuracy: 0.03856749311294766
+for_ede_wordvec_tanh_logcosh.h5
+
+
+
+
+rev_ede_wordvec_tanh_logcosh.h5
+6534
+Accuracy: 0.7076828895010713
+rev_ede_wordvec_tanh_logcosh.h5
+
+
+
+
+for_ede_wordvec_linear_mse.h5
+6534
+Accuracy: 0.030303030303030304
+for_ede_wordvec_linear_mse.h5
+
+
+
+
+rev_ede_wordvec_linear_mse.h5
+6534
+Accuracy: 0.7724211815120906
+rev_ede_wordvec_linear_mse.h5
+
+
+
+
+for_ede_wordvec_linear_mae.h5
+6534
+Accuracy: 0.02356902356902357
+for_ede_wordvec_linear_mae.h5
+
+
+
+
+rev_ede_wordvec_linear_mae.h5
+6534
+
