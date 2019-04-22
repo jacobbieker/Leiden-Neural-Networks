@@ -53,6 +53,7 @@ from __future__ import print_function
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense
 import numpy as np
+from keras.utils import plot_model
 
 batch_size = 64  # Batch size for training.
 epochs = 100  # Number of epochs to train for.
@@ -142,7 +143,7 @@ decoder_outputs = decoder_dense(decoder_outputs)
 # Define the model that will turn
 # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
 model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
-
+plot_model(model, to_file='seq2seq.png')
 # Run training
 model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
 model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
