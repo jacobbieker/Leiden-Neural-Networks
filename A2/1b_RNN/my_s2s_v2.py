@@ -6,6 +6,7 @@ from gensim.models import KeyedVectors as w2v
 from re import match, sub, DOTALL
 from sklearn.metrics.pairwise import cosine_distances
 from pickle import dump
+from keras.utils import plot_model
 
 '''
 efr_wordvec_tanh_mean_squared_error: 29.559
@@ -313,9 +314,12 @@ class data_prep():
             self.decoder_target_data[i, :tar_len-1, :] = tar_arr[1:, :]
         # french word vecs are in the range of +- 1.35, normalise for use with
         # tanh activation function
-        self.decoder_input_data /= 1.35
-        self.decoder_target_data /= 1.35
-
+        
+        ### scale french vector values to between -1 and 1
+        # self.decoder_input_data /= 1.35
+        # self.decoder_target_data /= 1.35
+         self.decoder_input_data /= 4.2
+         self.decoder_target_data /= 4.2
 
 class seq2seq():
     def __init__(self, data_prep):
@@ -394,6 +398,8 @@ class seq2seq():
 
         self.dec_model = Model([decoder_inputs] + decoder_states_inputs,
                                [decoder_outputs] + decoder_states)
+        
+        plot_model(self.model, to_file='2layer.png')
 
     def reverse(self, act_func, loss_func, latent_dim=256):
         zeros = np.all(self.data.encoder_input_data == 0, axis=2)
