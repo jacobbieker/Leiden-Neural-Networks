@@ -85,3 +85,31 @@ for_efr_wordvec_tanh_cosine.h5
 
 for_ede_wordvec_tanh_cosine.h5
 6534
+
+
+for_efr_wordvec_tanh_cosine.h5
+6557
+Accuracy: 0.6945249351837731
+for_efr_wordvec_tanh_cosine.h5
+
+
+Skipped
+
+
+for_efr_wordvec_linear_cosine.h5
+6557
+Accuracy: 0.005642824462406588
+for_efr_wordvec_linear_cosine.h5
+
+
+
+
+rev_efr_wordvec_linear_cosine.h5
+6557
+Skipped
+Skipped
+Skipped
+
+
+rev_ede_wordvec_linear_cosine.h5
+6534
