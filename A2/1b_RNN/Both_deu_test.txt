@@ -68,3 +68,28 @@ for_ede_wordvec_linear_mae.h5
 rev_ede_wordvec_linear_mae.h5
 6534
 
+
+
+for_ede_wordvec_tanh_cosine.h5
+6534
+
+
+for_ede_wordvec_tanh_cosine.h5
+6534
+Accuracy: 0.0586164677073768
+for_ede_wordvec_tanh_cosine.h5
+
+
+Skipped
+
+
+for_ede_wordvec_linear_cosine.h5
+6534
+Accuracy: 0.005662687480869299
+for_ede_wordvec_linear_cosine.h5
+
+
+
+
+rev_ede_wordvec_linear_cosine.h5
+6534
